@@ -40,10 +40,10 @@ public class Application {
       );
       System.out.println("-----------------------------------------------------------");
       System.out.println("1 - Registrar ação sustentável");
-      System.out.println("2 - Ver Meu Nível e Estatísticas");
-      System.out.println("3 - Resgatar Recompensas (Benefícios Reais)");
-      System.out.println("4 - Sugestão do Avatar");
-      System.out.println("5 - Ver Ranking da Semana");
+      System.out.println("2 - Ver meu nível e estatísticas");
+      System.out.println("3 - Resgatar recompensas (Benefícios reais)");
+      System.out.println("4 - Sugestão do avatar");
+      System.out.println("5 - Ver ranking da semana");
       System.out.println("6 - Área do administrador");
       System.out.println("0 - Sair");
       int opcao = lerInteiro("Escolha: ");
