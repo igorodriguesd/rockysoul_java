@@ -1,0 +1,113 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="rockysoul-classes" name="Diagrama de Classes">
+    <mxGraphModel dx="998" dy="537" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="titulo" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="Diagrama de Classes — RockySoul" vertex="1">
+          <mxGeometry height="30" width="560" x="420" as="geometry" />
+        </mxCell>
+        <mxCell id="app" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#f8cecc;strokeColor=#b85450;" value="Application" vertex="1">
+          <mxGeometry height="150" width="300" x="520" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="app-a" parent="app" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- SENHA_ADMIN: String {static final}" vertex="1">
+          <mxGeometry height="26" width="300" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="app-m" parent="app" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ main(args: String[])&#xa;- exibirMenuPrincipal()&#xa;- menuUsoDoSistema() / areaAdministrador()&#xa;- menuUsuarios() / menuAcoes() / menuRecompensas()&#xa;- autenticar() / lerInteiro() / lerTexto()" vertex="1">
+          <mxGeometry height="98" width="300" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="svc" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="GamificacaoService" vertex="1">
+          <mxGeometry height="130" width="290" x="130" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-a" parent="svc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="{final} classe de serviço sem estado" vertex="1">
+          <mxGeometry height="24" width="290" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-m" parent="svc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ registrarAcao(usuario: Usuario, acao: AcaoSustentavel)&#xa;+ podeResgatar(usuario: Usuario, r: Recompensa): boolean&#xa;+ resgatar(usuario: Usuario, r: Recompensa)&#xa;- validarObrigatorio(obj: Object, nome: String)" vertex="1">
+          <mxGeometry height="80" width="290" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dados" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#fff2cc;strokeColor=#d6b656;" value="Dados «inner class»" vertex="1">
+          <mxGeometry height="150" width="270" x="1060" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="dados-a" parent="dados" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ usuarios: List&lt;Usuario&gt;&#xa;+ acoes: List&lt;AcaoSustentavel&gt;&#xa;+ recompensas: List&lt;Recompensa&gt;&#xa;+ registros: List&lt;RegistroAcao&gt;&#xa;+ seqUsuario / seqAcao / seqRecompensa: long" vertex="1">
+          <mxGeometry height="124" width="270" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="usuario" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Usuario" vertex="1">
+          <mxGeometry height="300" width="260" x="30" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="usuario-a" parent="usuario" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- id: Long&#xa;- nome: String&#xa;- email: String&#xa;- pontos: int&#xa;- pontosResgatados: int&#xa;- nivel: String&#xa;- NOMES_NIVEIS: String[] {static}&#xa;- PONTOS_MINIMOS: int[] {static}" vertex="1">
+          <mxGeometry height="128" width="260" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="usuario-m" parent="usuario" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ adicionarPontos(valor: int)&#xa;+ removerPontos(valor: int)&#xa;+ registrarResgate(valor: int)&#xa;+ calcularNivel(): String&#xa;+ pontosParaProximoNivel(): int&#xa;+ proximoNivel(): String&#xa;- validarValorPositivo(valor, msg)&#xa;+ getters / setters" vertex="1">
+          <mxGeometry height="146" width="260" y="154" as="geometry" />
+        </mxCell>
+        <mxCell id="registro" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="RegistroAcao" vertex="1">
+          <mxGeometry height="175" width="270" x="340" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="registro-a" parent="registro" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- id: Long&#xa;- usuario: Usuario&#xa;- acao: AcaoSustentavel&#xa;- dataRegistro: LocalDateTime&#xa;- pontosObtidos: int" vertex="1">
+          <mxGeometry height="95" width="270" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="registro-m" parent="registro" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ RegistroAcao(usuario, acao)&#xa;+ calcularPontos(): int&#xa;+ getters / setters" vertex="1">
+          <mxGeometry height="54" width="270" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="acao" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="AcaoSustentavel" vertex="1">
+          <mxGeometry height="135" width="260" x="660" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="acao-a" parent="acao" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- id: Long&#xa;- nome: String&#xa;- descricao: String&#xa;- pontos: int" vertex="1">
+          <mxGeometry height="74" width="260" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="acao-m" parent="acao" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ validarPontos(): boolean&#xa;+ getters / setters" vertex="1">
+          <mxGeometry height="35" width="260" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="recompensa" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;collapsible=1;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Recompensa" vertex="1">
+          <mxGeometry height="165" width="260" x="980" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="recompensa-a" parent="recompensa" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- id: Long&#xa;- titulo: String&#xa;- descricao: String&#xa;- custo: int&#xa;- estoque: int" vertex="1">
+          <mxGeometry height="95" width="260" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="recompensa-m" parent="recompensa" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ possuiEstoque(): boolean&#xa;+ reduzirEstoque()&#xa;+ getters / setters" vertex="1">
+          <mxGeometry height="44" width="260" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="legenda" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#666666;" value="Getters/setters simples resumidos como “getters / setters”.&#xa;Setas tracejadas = dependência («usa»). Losango cheio = composição. Losango vazio = agregação." vertex="1">
+          <mxGeometry height="50" width="640" x="30" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="app" style="endArrow=open;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" target="svc" value="«usa»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" style="endArrow=diamondThin;endFill=1;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="dados" value="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="332.5" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="dados" style="endArrow=diamondThin;endFill=0;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="registro" value="0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="dados" style="endArrow=diamondThin;endFill=0;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="acao" value="0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="dados" style="endArrow=diamondThin;endFill=0;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="recompensa" value="0..*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="dados" style="endArrow=diamondThin;endFill=0;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="usuario" value="0..*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1075" y="440" />
+              <mxPoint x="160" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="registro" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="usuario" value="0..*    pertence a    1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="registro" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="acao" value="0..*    referencia    1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="svc" style="endArrow=open;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="usuario" value="«usa»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="svc" style="endArrow=open;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="registro" value="«usa»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

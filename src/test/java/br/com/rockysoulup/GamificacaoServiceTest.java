@@ -15,27 +15,21 @@ class GamificacaoServiceTest {
     Usuario u = new Usuario("Ana", "ana@email.com");
     service.registrarAcao(u, new AcaoSustentavel("Reciclagem", "Resíduos", 30));
     assertEquals(30, u.getPontos());
-    assertEquals("RAIZ DE NADA", u.getNivel());
+    assertEquals("SEMENTE", u.getNivel());
   }
 
   @Test
   void deveCalcularRankingConformePontos() {
     Usuario u = new Usuario("Ana", "ana@email.com");
-    assertEquals("RAIZ DE NADA", u.calcularNivel());
+    assertEquals("SEMENTE", u.calcularNivel());
     u.adicionarPontos(99);
-    assertEquals("RAIZ DE NADA", u.getNivel());
+    assertEquals("SEMENTE", u.getNivel());
     u.adicionarPontos(1);
     assertEquals("BROTO", u.getNivel());
-    u.adicionarPontos(100);
-    assertEquals("GRAVETO", u.getNivel());
-    u.adicionarPontos(100);
-    assertEquals("ERVA", u.getNivel());
-    u.adicionarPontos(100);
-    assertEquals("MATO ALTO", u.getNivel());
-    u.adicionarPontos(100);
-    assertEquals("TRONCO", u.getNivel());
-    u.adicionarPontos(100);
-    assertEquals("JARDINEIRO DO EDEN", u.getNivel());
+    u.adicionarPontos(200);
+    assertEquals("ÁRVORE", u.getNivel());
+    u.adicionarPontos(300);
+    assertEquals("EXPERT", u.getNivel());
   }
 
   @Test

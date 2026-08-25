@@ -5,15 +5,12 @@ import java.util.Objects;
 public class Usuario {
 
   private static final String[] NOMES_NIVEIS = {
-    "RAIZ DE NADA",
+    "SEMENTE",
     "BROTO",
-    "GRAVETO",
-    "ERVA",
-    "MATO ALTO",
-    "TRONCO",
-    "JARDINEIRO DO EDEN",
+    "ÁRVORE",
+    "EXPERT",
   };
-  private static final int[] PONTOS_MINIMOS = {100, 200, 300, 400, 500, 600};
+  private static final int[] PONTOS_MINIMOS = {100, 300, 600};
 
   private Long id;
   private String nome;

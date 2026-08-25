@@ -17,7 +17,6 @@ public class Application {
 
   private static final DateTimeFormatter FORMATO_DATA =
     DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-  private static final String SENHA_ADMIN = "senha";
 
   private final Scanner scanner = new Scanner(System.in);
   private final JsonDatabase db = new JsonDatabase();
@@ -44,7 +43,7 @@ public class Application {
       System.out.println("3 - Resgatar Recompensas (Benefícios Reais)");
       System.out.println("4 - Sugestão do Avatar");
       System.out.println("5 - Ver Ranking da Semana");
-      System.out.println("6 - Área do administrador");
+      System.out.println("6 - CRUD");
       System.out.println("0 - Sair");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) {
@@ -290,13 +289,8 @@ public class Application {
   }
 
   private void areaAdmin() {
-    String senha = lerTexto("Senha do administrador: ");
-    if (!SENHA_ADMIN.equals(senha)) {
-      System.out.println("Senha incorreta.");
-      return;
-    }
     while (true) {
-      System.out.println("\n--- ÁREA DO ADMINISTRADOR ---");
+      System.out.println("\n--- CRUD ---");
       System.out.println("1 - Usuários");
       System.out.println("2 - Ações sustentáveis");
       System.out.println("3 - Recompensas");
