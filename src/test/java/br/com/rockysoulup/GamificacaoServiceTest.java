@@ -13,7 +13,7 @@ class GamificacaoServiceTest {
   @Test
   void deveAdicionarPontosEAtualizarNivel() {
     Usuario u = new Usuario("Ana", "ana@email.com");
-    service.registrarAcao(u, new AcaoSustentavel("Reciclagem", "Resíduos", 30));
+    service.registrarAcao(u, 30);
     assertEquals(30, u.getPontos());
     assertEquals("SEMENTE", u.getNivel());
   }
@@ -33,21 +33,12 @@ class GamificacaoServiceTest {
   }
 
   @Test
-  void deveResgatarRecompensa() {
+  void deveConquistarSeloQuandoAtingirMinimo() {
     Usuario u = new Usuario("Ana", "ana@email.com");
-    u.adicionarPontos(200);
-    Recompensa r = new Recompensa("Árvore", "Muda", 100, 1);
-    service.resgatar(u, r);
-    assertEquals(100, u.getPontos());
-    assertEquals(100, u.getPontosResgatados());
-    assertEquals(0, r.getEstoque());
-  }
-
-  @Test
-  void naoDeveResgatarSemSaldo() {
-    Usuario u = new Usuario("Ana", "ana@email.com");
-    Recompensa r = new Recompensa("Árvore", "Muda", 100, 1);
-    assertThrows(IllegalStateException.class, () -> service.resgatar(u, r));
+    Selo broto = new Selo("Broto", "50 pontos", 50);
+    assertFalse(service.seloConquistado(u, broto));
+    u.adicionarPontos(50);
+    assertTrue(service.seloConquistado(u, broto));
   }
 
   @Test
@@ -58,5 +49,25 @@ class GamificacaoServiceTest {
     u.adicionarPontos(600);
     assertNull(u.proximoNivel());
     assertEquals(-1, u.pontosParaProximoNivel());
+  }
+
+  @Test
+  void deveValidarRegrasDoModelo() {
+    assertThrows(
+      IllegalArgumentException.class,
+      () -> new Usuario("", "ana@email.com")
+    );
+    assertThrows(
+      IllegalArgumentException.class,
+      () -> new Usuario("Ana", "email-invalido")
+    );
+    assertThrows(
+      IllegalArgumentException.class,
+      () -> new Historico(1L, "Ação", 200)
+    );
+    assertThrows(
+      IllegalArgumentException.class,
+      () -> new Selo("S", "D", -1)
+    );
   }
 }

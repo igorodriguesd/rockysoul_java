@@ -1,5 +1,6 @@
 package br.com.rockysoulup.model;
 
+/** Recompensa resgatável por pontos, com estoque limitado. */
 public class Recompensa {
 
   private Long id;
@@ -7,27 +8,29 @@ public class Recompensa {
   private String descricao;
   private int custo;
   private int estoque;
+  private String categoria;
+  private String destaque;
 
   public Recompensa() {}
 
   public Recompensa(String titulo, String descricao, int custo, int estoque) {
+    this(titulo, descricao, custo, estoque, "", "");
+  }
+
+  public Recompensa(
+    String titulo,
+    String descricao,
+    int custo,
+    int estoque,
+    String categoria,
+    String destaque
+  ) {
     setTitulo(titulo);
     setDescricao(descricao);
     setCusto(custo);
     setEstoque(estoque);
-  }
-
-  /** Informa se a recompensa ainda pode ser resgatada. */
-  public boolean possuiEstoque() {
-    return estoque > 0;
-  }
-
-  /** Reduz uma unidade do estoque após um resgate válido. */
-  public void reduzirEstoque() {
-    if (!possuiEstoque()) {
-      throw new IllegalStateException("Recompensa sem estoque");
-    }
-    estoque--;
+    setCategoria(categoria);
+    setDestaque(destaque);
   }
 
   public Long getId() {
@@ -35,6 +38,9 @@ public class Recompensa {
   }
 
   public void setId(Long id) {
+    if (id != null && id <= 0) throw new IllegalArgumentException(
+      "Id da recompensa inválido"
+    );
     this.id = id;
   }
 
@@ -44,7 +50,7 @@ public class Recompensa {
 
   public void setTitulo(String titulo) {
     if (titulo == null || titulo.isBlank()) throw new IllegalArgumentException(
-      "Título é obrigatório"
+      "O título da recompensa é obrigatório"
     );
     this.titulo = titulo.trim();
   }
@@ -63,7 +69,7 @@ public class Recompensa {
 
   public void setCusto(int custo) {
     if (custo <= 0) throw new IllegalArgumentException(
-      "Custo deve ser positivo"
+      "O custo da recompensa deve ser positivo"
     );
     this.custo = custo;
   }
@@ -74,8 +80,24 @@ public class Recompensa {
 
   public void setEstoque(int estoque) {
     if (estoque < 0) throw new IllegalArgumentException(
-      "Estoque não pode ser negativo"
+      "O estoque não pode ser negativo"
     );
     this.estoque = estoque;
+  }
+
+  public String getCategoria() {
+    return categoria;
+  }
+
+  public void setCategoria(String categoria) {
+    this.categoria = categoria == null ? "" : categoria.trim();
+  }
+
+  public String getDestaque() {
+    return destaque;
+  }
+
+  public void setDestaque(String destaque) {
+    this.destaque = destaque == null ? "" : destaque.trim();
   }
 }

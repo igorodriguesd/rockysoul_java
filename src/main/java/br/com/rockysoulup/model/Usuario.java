@@ -1,7 +1,5 @@
 package br.com.rockysoulup.model;
 
-import java.util.Objects;
-
 public class Usuario {
 
   private static final String[] NOMES_NIVEIS = {
@@ -16,7 +14,7 @@ public class Usuario {
   private String nome;
   private String email;
   private int pontos;
-  private int pontosResgatados;
+  private int resgatados;
   private String nivel;
 
   public Usuario() {
@@ -34,22 +32,6 @@ public class Usuario {
     validarValorPositivo(valor, "A quantidade de pontos deve ser positiva");
     pontos += valor;
     nivel = calcularNivel();
-  }
-
-  /** Remove pontos durante o resgate de uma recompensa. */
-  public void removerPontos(int valor) {
-    validarValorPositivo(valor, "A quantidade de pontos deve ser positiva");
-    if (valor > pontos) throw new IllegalArgumentException(
-      "Saldo insuficiente"
-    );
-    pontos -= valor;
-    nivel = calcularNivel();
-  }
-
-  /** Acumula o total de pontos convertidos em recompensas. */
-  public void registrarResgate(int valor) {
-    validarValorPositivo(valor, "A quantidade de pontos deve ser positiva");
-    pontosResgatados += valor;
   }
 
   /** Determina o nível conforme a faixa de pontuação acumulada. */
@@ -119,6 +101,17 @@ public class Usuario {
     return pontos;
   }
 
+  public int getResgatados() {
+    return resgatados;
+  }
+
+  public void setResgatados(int resgatados) {
+    if (resgatados < 0) throw new IllegalArgumentException(
+      "Pontos resgatados não podem ser negativos"
+    );
+    this.resgatados = resgatados;
+  }
+
   public void setPontos(int pontos) {
     if (pontos < 0) throw new IllegalArgumentException(
       "Pontos não podem ser negativos"
@@ -127,23 +120,8 @@ public class Usuario {
     this.nivel = calcularNivel();
   }
 
-  public int getPontosResgatados() {
-    return pontosResgatados;
-  }
-
-  public void setPontosResgatados(int valor) {
-    if (valor < 0) throw new IllegalArgumentException(
-      "Pontos resgatados não podem ser negativos"
-    );
-    this.pontosResgatados = valor;
-  }
-
   public String getNivel() {
     return nivel;
-  }
-
-  public void setNivel(String nivel) {
-    this.nivel = Objects.requireNonNull(nivel, "Nível é obrigatório");
   }
 
   @Override

@@ -1,0 +1,12 @@
+# Conexao com o banco Oracle.
+#
+# PARA RODAR EM QUALQUER PC:
+#   1. Copie este arquivo para "db.properties" (mesmo nome, sem ".example");
+#   2. Preencha abaixo com as credenciais do SEU banco (FIAP ou outro);
+#   3. Execute o projeto (run.bat, mvn package, ou pelo IntelliJ).
+#
+# O arquivo db.properties NAO e versionado (esta no .gitignore). Este exemplo
+# e seguro para commit: nao contem dados reais.
+DB_URL=jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL
+DB_USER=troque_pelo_seu_rm
+DB_PASSWORD=troque_pela_sua_senha

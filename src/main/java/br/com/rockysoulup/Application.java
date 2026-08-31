@@ -1,12 +1,10 @@
 package br.com.rockysoulup;
 
-import br.com.rockysoulup.model.AcaoSustentavel;
-import br.com.rockysoulup.model.Recompensa;
-import br.com.rockysoulup.model.RegistroAcao;
-import br.com.rockysoulup.model.Usuario;
-import br.com.rockysoulup.repository.JsonDatabase;
-import br.com.rockysoulup.service.GamificacaoService;
-import java.time.format.DateTimeFormatter;
+import br.com.rockysoulup.connection.ConnectionFactory;
+import br.com.rockysoulup.model.*;
+import br.com.rockysoulup.service.RockySoulService;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,12 +13,8 @@ import java.util.Scanner;
 
 public class Application {
 
-  private static final DateTimeFormatter FORMATO_DATA =
-    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
   private final Scanner scanner = new Scanner(System.in);
-  private final JsonDatabase db = new JsonDatabase();
-  private final GamificacaoService gamificacao = new GamificacaoService();
+  private final RockySoulService service = new RockySoulService();
   private Usuario usuarioLogado;
 
   public static void main(String[] args) {
@@ -28,29 +22,53 @@ public class Application {
   }
 
   private void iniciar() {
-    autenticar();
+    service.garantirCatalogo();
+    System.out.println("=== SISTEMA DE GAMIFICAÇÃO SUSTENTÁVEL SOULUP ===");
     while (true) {
-      System.out.println("\n===== DASHBOARD SOULUP =====");
-      System.out.printf(
-        "[ Pontos Disponíveis: %d | Já Resgatados: %d | Nível: %s ]%n",
-        usuarioLogado.getPontos(),
-        usuarioLogado.getPontosResgatados(),
-        usuarioLogado.getNivel()
-      );
-      System.out.println("-----------------------------------------------------------");
-      System.out.println("1 - Registrar ação sustentável");
-      System.out.println("2 - Ver Meu Nível e Estatísticas");
-      System.out.println("3 - Resgatar Recompensas (Benefícios Reais)");
-      System.out.println("4 - Sugestão do Avatar");
-      System.out.println("5 - Ver Ranking da Semana");
-      System.out.println("6 - CRUD");
+      System.out.println("\n===== MENU PRINCIPAL =====");
+      System.out.println("1 - Uso do sistema");
+      System.out.println("2 - Área de cadastro (CRUD)");
       System.out.println("0 - Sair");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) {
-        System.out.println(
-          "Saindo... Seus dados de impacto foram salvos com segurança."
-        );
+        System.out.println("Até logo! Continue salvando o planeta!");
         break;
+      }
+      if (opcao == 1) {
+        usoDoSistema();
+      } else if (opcao == 2) {
+        try {
+          areaAdmin();
+        } catch (RuntimeException e) {
+          System.out.println("Erro inesperado: " + e.getMessage());
+        }
+      } else {
+        System.out.println("Opção inválida!");
+      }
+    }
+    scanner.close();
+  }
+
+  private void usoDoSistema() {
+    autenticar();
+    while (true) {
+      System.out.printf(
+        "%n[ Pontos: %d | Resgatados: %d | Nível: %s ]%n",
+        usuarioLogado.getPontos(),
+        usuarioLogado.getResgatados(),
+        usuarioLogado.getNivel()
+      );
+      System.out.println("\n===== DASHBOARD SOULUP =====");
+      System.out.println("1 - Registrar ação sustentável");
+      System.out.println("2 - Ver meu nível e estatísticas");
+      System.out.println("3 - Resgatar recompensas (benefícios reais)");
+      System.out.println("4 - Sugestão do avatar");
+      System.out.println("5 - Ver ranking da semana");
+      System.out.println("0 - Voltar");
+      int opcao = lerInteiro("Escolha: ");
+      if (opcao == 0) {
+        System.out.println("Voltando ao menu principal...");
+        return;
       }
       try {
         executar(opcao);
@@ -60,34 +78,27 @@ public class Application {
         System.out.println("Erro inesperado: " + e.getMessage());
       }
     }
-    scanner.close();
   }
 
   private void autenticar() {
-    System.out.println("Base de dados: " + JsonDatabase.caminhoDoArquivo());
+    System.out.println("Base de dados: " + ConnectionFactory.endereco());
     while (true) {
       String nome = lerTexto("Nome: ");
       String email = lerTexto("E-mail: ");
-      Usuario existente = db.buscarUsuarioPorEmail(email);
-      if (existente != null) {
-        usuarioLogado = existente;
-        System.out.printf(
-          "Bem-vindo de volta, %s!%n",
-          usuarioLogado.getNome()
-        );
-        return;
-      }
-      if (db.buscarUsuarioPorNome(nome) != null) {
-        System.out.println("Este nome já está em uso. Escolha outro.");
-        continue;
-      }
       try {
-        usuarioLogado = new Usuario(nome, email);
-        db.inserirUsuario(usuarioLogado);
+        Usuario existente = service.usuarios().buscarPorEmail(email);
+        if (existente != null) {
+          usuarioLogado = existente;
+          System.out.println("Bem-vindo de volta, " + existente.getNome() + "!");
+          return;
+        }
+        usuarioLogado = service.cadastrarUsuario(nome, email);
         System.out.println("Cadastro criado com sucesso!");
         return;
       } catch (IllegalArgumentException | IllegalStateException e) {
         System.out.println("Erro: " + e.getMessage());
+      } catch (SQLException e) {
+        System.out.println("Falha ao acessar o banco: " + e.getMessage());
       }
     }
   }
@@ -96,81 +107,65 @@ public class Application {
     switch (opcao) {
       case 1 -> registrarAcao();
       case 2 -> verNivelEstatisticas();
-      case 3 -> resgatarRecompensa();
+      case 3 -> resgatarRecompensas();
       case 4 -> sugestaoAvatar();
       case 5 -> verRanking();
-      case 6 -> areaAdmin();
-      default -> System.out.println("Opção inválida! Digite de 1 a 6.");
+      default -> System.out.println("Opção inválida! Digite de 1 a 5.");
     }
   }
 
   private void registrarAcao() {
-    List<AcaoSustentavel> acoes = db.listarAcoes();
+    List<Acao> acoes = service.listarAcoes();
     if (acoes.isEmpty()) {
       System.out.println("Nenhuma ação cadastrada.");
       return;
     }
     System.out.println("\nAções Sustentáveis disponíveis:");
     for (int i = 0; i < acoes.size(); i++) {
-      AcaoSustentavel a = acoes.get(i);
-      System.out.printf("%d - %s%n", i + 1, a.getNome());
+      System.out.printf("%d - %s (%d pts)%n", i + 1, acoes.get(i).getNome(), acoes.get(i).getPontos());
     }
     int posicao = lerInteiro("\nQual ação sustentável você realizou hoje? ");
     if (posicao < 1 || posicao > acoes.size()) {
-      System.out.println("Opção inválida!");
+      System.out.println("Erro: opção inválida!");
       return;
     }
-    AcaoSustentavel acao = acoes.get(posicao - 1);
-    gamificacao.registrarAcao(usuarioLogado, acao);
-    db.inserirRegistro(new RegistroAcao(usuarioLogado, acao));
-    db.atualizarUsuario(usuarioLogado);
-    System.out.printf(
-      "Boa! Você ganhou +%d Pontos ECOA com: %s!%n",
-      acao.getPontos(),
-      acao.getNome()
-    );
+    Acao acao = acoes.get(posicao - 1);
+    List<Selo> selos = service.registrarAcao(usuarioLogado, acao.getNome(), acao.getPontos());
+    System.out.printf("Boa! Você ganhou +%d Pontos ECOA com: %s!%n", acao.getPontos(), acao.getNome());
+    anunciarSelosNovos(selos);
   }
 
   private void verNivelEstatisticas() {
-    String nivel = usuarioLogado.calcularNivel();
-    System.out.printf("%n--- SEU NÍVEL ATUAL: %s ---%n", nivel);
-    System.out.printf(
-      "Saldo Disponível: %d Pontos ECOA%n",
-      usuarioLogado.getPontos()
-    );
-    System.out.printf(
-      "Total já Resgatado: %d Pontos ECOA%n",
-      usuarioLogado.getPontosResgatados()
-    );
+    System.out.printf("%n--- SEU NÍVEL ATUAL: %s ---%n", usuarioLogado.getNivel());
+    System.out.printf("Saldo Disponível: %d Pontos ECOA%n", usuarioLogado.getPontos());
+    System.out.printf("Total já Resgatado: %d Pontos ECOA%n", usuarioLogado.getResgatados());
 
-    List<RegistroAcao> registros = db.listarRegistrosPorUsuario(
-      usuarioLogado.getId()
-    );
+    List<Historico> registros = listarHistorico();
     if (registros.isEmpty()) {
-      System.out.println("Histórico de Missões: vazio. Comece hoje!");
+      System.out.println("Histórico de Ações: vazio. Comece hoje!");
     } else {
       Map<String, Integer> quantidade = new LinkedHashMap<>();
       Map<String, Integer> pontos = new LinkedHashMap<>();
-      for (RegistroAcao r : registros) {
-        String nome =
-          r.getAcao() == null ? "(ação removida)" : r.getAcao().getNome();
-        quantidade.merge(nome, 1, Integer::sum);
-        pontos.merge(nome, r.getPontosObtidos(), Integer::sum);
+      for (Historico h : registros) {
+        quantidade.merge(h.getDescricao(), 1, Integer::sum);
+        pontos.merge(h.getDescricao(), h.getPontos(), Integer::sum);
       }
-      System.out.println("Histórico de Missões:");
+      System.out.println("Histórico de Ações:");
       for (Map.Entry<String, Integer> e : quantidade.entrySet()) {
-        System.out.printf(
-          "  • %s x%d (%d pts)%n",
-          e.getKey(),
-          e.getValue(),
-          pontos.get(e.getKey())
-        );
+        System.out.printf("  • %s x%d (+%d pts)%n", e.getKey(), e.getValue(), pontos.get(e.getKey()));
       }
     }
 
+    List<Selo> selos = service.listarSelosConcedidos(usuarioLogado);
+    System.out.println(
+      selos.isEmpty()
+        ? "Selos conquistados: nenhum ainda."
+        : "Selos conquistados: " + nomes(selos)
+    );
+
     String proximo = usuarioLogado.proximoNivel();
     if (proximo == null) {
-      System.out.println("Você alcançou o nível máximo! Você é lenda! 🏆");
+      System.out.println("Você alcançou o nível máximo! Você é lenda!");
     } else {
       System.out.printf(
         "Progresso: Faltam %d pontos para evoluir para %s!%n",
@@ -180,87 +175,59 @@ public class Application {
     }
   }
 
-  private void resgatarRecompensa() {
-    List<Recompensa> recompensas = db.listarRecompensas();
+  private void resgatarRecompensas() {
+    List<Recompensa> recompensas = service.listarRecompensas();
     if (recompensas.isEmpty()) {
-      System.out.println("Nenhuma recompensa cadastrada.");
+      System.out.println("\nNenhuma recompensa cadastrada.");
       return;
     }
     System.out.println("\n=== VITRINE DE RECOMPENSAS SOULUP ===");
     for (int i = 0; i < recompensas.size(); i++) {
       Recompensa r = recompensas.get(i);
-      String estoque =
-        r.getEstoque() > 0 ? "estoque " + r.getEstoque() : "ESGOTADO";
-      System.out.printf(
-        "%d - %s -------------- %d pts (%s)%n",
-        i + 1,
-        r.getTitulo(),
-        r.getCusto(),
-        estoque
-      );
+      String situacao = r.getEstoque() > 0 ? "estoque " + r.getEstoque() : "ESGOTADO";
+      String badge = r.getDestaque().isEmpty() ? "" : " [" + r.getDestaque() + "]";
+      String categoria = r.getCategoria().isEmpty() ? "" : " (" + r.getCategoria() + ")";
+      System.out.printf("%d - %s%s%s ---- %d pts (%s)%n", i + 1, r.getTitulo(), badge, categoria, r.getCusto(), situacao);
     }
     System.out.println("0 - Voltar");
-    int opcao = lerInteiro(
-      "\nSeu Saldo: " +
-      usuarioLogado.getPontos() +
-      " pts. Escolha um benefício: "
-    );
-    if (opcao == 0) return;
-    if (opcao < 1 || opcao > recompensas.size()) {
-      System.out.println("Opção inválida!");
+    int escolha = lerInteiro("\nSeu Saldo: " + usuarioLogado.getPontos() + " pts. Escolha um benefício: ");
+    if (escolha == 0) {
+      System.out.println("Operação cancelada.");
       return;
     }
-    Recompensa escolhida = recompensas.get(opcao - 1);
-    try {
-      gamificacao.resgatar(usuarioLogado, escolhida);
-      db.atualizarUsuario(usuarioLogado);
-      db.atualizarRecompensa(escolhida);
-      System.out.printf(
-        "%nSucesso! Você resgatou: %s!%n",
-        escolhida.getTitulo()
-      );
-      System.out.printf(
-        "Foram utilizados %d Pontos ECOA. Saldo atual: %d pts.%n",
-        escolhida.getCusto(),
-        usuarioLogado.getPontos()
-      );
-    } catch (IllegalStateException e) {
-      System.out.printf(
-        "%nPontos insuficientes ou estoque esgotado! Você precisa de %d pontos, mas tem apenas %d.%n",
-        escolhida.getCusto(),
-        usuarioLogado.getPontos()
-      );
+    if (escolha < 0 || escolha > recompensas.size()) {
+      System.out.println("Erro: opção inválida!");
+      return;
     }
+    Recompensa recompensa = service.resgatarRecompensa(usuarioLogado, recompensas.get(escolha - 1).getId());
+    System.out.println("\nSucesso! Você resgatou: " + recompensa.getTitulo() + "!");
+    System.out.printf("Foram utilizados %d Pontos ECOA.%n", recompensa.getCusto());
   }
 
   private void sugestaoAvatar() {
     int pontos = usuarioLogado.getPontos();
-    String proximo = usuarioLogado.proximoNivel();
-    System.out.println("\n--- MENSAGEM DO AVATAR ---");
+    String mensagem;
     if (pontos < 100) {
-      System.out.println(
-        "Avatar: Que ótimo ver você por aqui! Registre missões diárias para fazermos nossa semente brotar."
-      );
-    } else if (pontos < 400) {
-      System.out.println(
-        "Avatar: Crescendo firme! Continue registrando ações para desbloquear as melhores recompensas."
-      );
-    } else if (proximo != null) {
-      System.out.printf(
-        "Avatar: Parabéns pelo nível %s! Faltam só %d pontos para virar %s.%n",
-        usuarioLogado.getNivel(),
-        usuarioLogado.pontosParaProximoNivel(),
-        proximo
-      );
+      mensagem = "Avatar: Registre ações diárias para fazermos nossa semente brotar!";
+    } else if (pontos < 300) {
+      mensagem = "Avatar: Crescendo firme! Junte pontos para resgatar benefícios reais!";
+    } else if (usuarioLogado.proximoNivel() == null) {
+      mensagem = "Avatar: Você é Expert! O planeta agradece, lenda!";
     } else {
-      System.out.println(
-        "Avatar: Você é JARDINEIRO DO EDEN! O planeta agradece, lenda! 🌍"
-      );
+      mensagem =
+        "Avatar: Parabéns pelo nível " +
+        usuarioLogado.getNivel() +
+        "! Faltam só " +
+        usuarioLogado.pontosParaProximoNivel() +
+        " pontos para virar " +
+        usuarioLogado.proximoNivel() +
+        ".";
     }
+    System.out.println("\n" + mensagem);
   }
 
   private void verRanking() {
-    List<Usuario> usuarios = db.listarUsuarios();
+    List<Usuario> usuarios = listarUsuarios();
     usuarios.sort(Comparator.comparingInt(Usuario::getPontos).reversed());
     System.out.println("\n==============================");
     System.out.println("      RANKING DA SEMANA       ");
@@ -269,31 +236,23 @@ public class Application {
     for (Usuario u : usuarios) {
       boolean souEu = u.getId().equals(usuarioLogado.getId());
       if (souEu) {
-        System.out.printf(
-          "-> %dº %-15s | %d pts * (Sua posição)%n",
-          posicao,
-          u.getNome(),
-          u.getPontos()
-        );
+        System.out.printf("-> %dº %-15s | %d pts * (Sua posição)%n", posicao, u.getNome(), u.getPontos());
       } else {
-        System.out.printf(
-          "   %dº %-15s | %d pts%n",
-          posicao,
-          u.getNome(),
-          u.getPontos()
-        );
+        System.out.printf("   %dº %-15s | %d pts%n", posicao, u.getNome(), u.getPontos());
       }
       posicao++;
     }
     System.out.println("==============================");
   }
 
+  /* ─────────────── ÁREA DE CADASTRO (CRUD) ─────────────── */
+
   private void areaAdmin() {
     while (true) {
-      System.out.println("\n--- CRUD ---");
-      System.out.println("1 - Usuários");
-      System.out.println("2 - Ações sustentáveis");
-      System.out.println("3 - Recompensas");
+      System.out.println("\n===== ÁREA DE CADASTRO (CRUD) =====");
+      System.out.println("1 - Gerenciar usuários");
+      System.out.println("2 - Gerenciar ações");
+      System.out.println("3 - Gerenciar recompensas");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
@@ -308,223 +267,360 @@ public class Application {
 
   private void menuUsuarios() {
     while (true) {
-      System.out.println("\n--- USUÁRIOS ---");
-      System.out.println("1 - Cadastrar");
-      System.out.println("2 - Listar");
-      System.out.println("3 - Atualizar");
-      System.out.println("4 - Excluir");
+      System.out.println("\n===== GERENCIAR USUÁRIOS =====");
+      System.out.println("1 - Incluir usuário");
+      System.out.println("2 - Alterar usuário");
+      System.out.println("3 - Excluir usuário");
+      System.out.println("4 - Listar usuários");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
         case 1 -> cadastrarUsuario();
-        case 2 -> listarUsuarios();
-        case 3 -> atualizarUsuario();
-        case 4 -> excluirUsuario();
+        case 2 -> atualizarUsuario();
+        case 3 -> excluirUsuario();
+        case 4 -> imprimirUsuarios();
         default -> System.out.println("Opção inválida.");
       }
     }
   }
 
   private void cadastrarUsuario() {
-    Usuario usuario = new Usuario(
-      lerTexto("Nome: "),
-      lerTexto("E-mail: ")
-    );
-    db.inserirUsuario(usuario);
-    System.out.println("Usuário cadastrado com id " + usuario.getId());
+    try {
+      Usuario novo = service.cadastrarUsuario(
+        lerTexto("Nome: "),
+        lerTexto("E-mail: ")
+      );
+      System.out.println("Usuário '" + novo.getNome() + "' cadastrado com sucesso!");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
   }
 
-  private void listarUsuarios() {
-    List<Usuario> usuarios = db.listarUsuarios();
+  private void atualizarUsuario() {
+    try {
+      Usuario usuario = service.usuarios().buscarPorId(lerInteiro("ID do usuário: "));
+      if (usuario == null) {
+        System.out.println("Erro: usuário não encontrado!");
+        return;
+      }
+      usuario.setNome(lerTextoOuPadrao("Novo nome [" + usuario.getNome() + "]: ", usuario.getNome()));
+      usuario.setEmail(lerTextoOuPadrao("Novo e-mail [" + usuario.getEmail() + "]: ", usuario.getEmail()));
+      service.usuarios().atualizar(usuario);
+      System.out.println("Usuário alterado com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void excluirUsuario() {
+    long id = lerInteiro("ID do usuário: ");
+    try {
+      service.excluirUsuario(id);
+      System.out.println("Usuário excluído com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void imprimirUsuarios() {
+    List<Usuario> usuarios = listarUsuarios();
     if (usuarios.isEmpty()) {
       System.out.println("Nenhum usuário cadastrado.");
       return;
     }
     for (Usuario u : usuarios) {
       System.out.printf(
-        "%d - %s | %s | %d pts | %d resgatados | %s%n",
-        u.getId(),
-        u.getNome(),
-        u.getEmail(),
-        u.getPontos(),
-        u.getPontosResgatados(),
-        u.getNivel()
+        "%d - %s | %s | %d pts | %d resgatado(s) | nível %s%n",
+        u.getId(), u.getNome(), u.getEmail(), u.getPontos(), u.getResgatados(), u.getNivel()
       );
     }
-  }
-
-  private void atualizarUsuario() {
-    Usuario usuario = db.buscarUsuarioPorId(lerInteiro("ID do usuário: "));
-    if (usuario == null) {
-      System.out.println("Usuário não encontrado.");
-      return;
-    }
-    usuario.setNome(
-      lerTextoOuPadrao(
-        "Nome [" + usuario.getNome() + "]: ",
-        usuario.getNome()
-      )
-    );
-    usuario.setEmail(
-      lerTextoOuPadrao(
-        "E-mail [" + usuario.getEmail() + "]: ",
-        usuario.getEmail()
-      )
-    );
-    db.atualizarUsuario(usuario);
-    System.out.println("Usuário atualizado.");
-  }
-
-  private void excluirUsuario() {
-    long id = lerInteiro("ID do usuário: ");
-    db.excluirUsuario(id);
-    System.out.println("Usuário excluído (se existia).");
   }
 
   private void menuAcoes() {
     while (true) {
-      System.out.println("\n--- AÇÕES SUSTENTÁVEIS ---");
-      System.out.println("1 - Cadastrar");
-      System.out.println("2 - Listar");
-      System.out.println("3 - Atualizar");
-      System.out.println("4 - Excluir");
+      System.out.println("\n===== GERENCIAR AÇÕES =====");
+      System.out.println("1 - Incluir ação");
+      System.out.println("2 - Alterar ação");
+      System.out.println("3 - Excluir ação");
+      System.out.println("4 - Listar ações");
+      System.out.println("5 - Filtrar ações por pontos");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
-        case 1 -> cadastrarAcao();
-        case 2 -> listarAcoes();
-        case 3 -> atualizarAcao();
-        case 4 -> excluirAcao();
+        case 1 -> incluirAcao();
+        case 2 -> alterarAcao();
+        case 3 -> excluirAcao();
+        case 4 -> listarAcoesCrud();
+        case 5 -> filtrarAcoes();
         default -> System.out.println("Opção inválida.");
       }
     }
   }
 
-  private void cadastrarAcao() {
-    AcaoSustentavel acao = new AcaoSustentavel(
-      lerTexto("Nome: "),
-      lerTexto("Descrição: "),
-      lerInteiro("Pontos: ")
-    );
-    db.inserirAcao(acao);
-    System.out.println("Ação cadastrada.");
+  private void incluirAcao() {
+    try {
+      String nome = lerTexto("Nome da ação: ");
+      int pontos = lerInteiro("Pontos da ação: ");
+      String erro = "";
+      if (nome.isBlank()) {
+        erro = "O nome é obrigatório!";
+      } else if (pontos <= 0 || pontos > 100) {
+        erro = "Os pontos devem estar entre 1 e 100!";
+      } else if (service.acoes().buscarPorNome(nome) != null) {
+        erro = "Já existe uma ação com este nome!";
+      }
+      if (!erro.isEmpty()) {
+        System.out.println("Erro: " + erro);
+        return;
+      }
+      Acao acao = new Acao(nome, pontos);
+      service.acoes().inserir(acao);
+      System.out.println("Ação '" + acao.getNome() + "' cadastrada com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
   }
 
-  private void listarAcoes() {
-    List<AcaoSustentavel> acoes = db.listarAcoes();
+  private void alterarAcao() {
+    try {
+      System.out.println("\nAções cadastradas:");
+      listarAcoesCrud();
+      List<Acao> acoes = service.listarAcoes();
+      int escolha = lerInteiro("\nNúmero da ação a alterar (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Alteração cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > acoes.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      Acao acao = acoes.get(escolha - 1);
+      String novoNome = lerTextoOuPadrao("Novo nome [" + acao.getNome() + "]: ", acao.getNome());
+      int novosPontos = lerInteiro("Novos pontos: ");
+      if (novosPontos <= 0 || novosPontos > 100) {
+        System.out.println("Erro: os pontos devem estar entre 1 e 100!");
+        return;
+      }
+      acao.setNome(novoNome);
+      acao.setPontos(novosPontos);
+      service.acoes().atualizar(acao);
+      System.out.println("Ação alterada com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void excluirAcao() {
+    try {
+      System.out.println("\nAções cadastradas:");
+      List<Acao> acoes = service.listarAcoes();
+      if (acoes.isEmpty()) {
+        System.out.println("Nenhuma ação cadastrada.");
+        return;
+      }
+      listarAcoesCrud();
+      int escolha = lerInteiro("\nNúmero da ação a excluir (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Exclusão cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > acoes.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      service.excluirAcao(acoes.get(escolha - 1).getId());
+      System.out.println("Ação excluída com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void listarAcoesCrud() {
+    List<Acao> acoes = service.listarAcoes();
     if (acoes.isEmpty()) {
       System.out.println("Nenhuma ação cadastrada.");
       return;
     }
-    for (AcaoSustentavel a : acoes) {
-      System.out.printf(
-        "%d - %s | %s | %d pts%n",
-        a.getId(),
-        a.getNome(),
-        a.getDescricao(),
-        a.getPontos()
-      );
+    for (int i = 0; i < acoes.size(); i++) {
+      Acao a = acoes.get(i);
+      System.out.printf("%d - %s (%d pts)%n", i + 1, a.getNome(), a.getPontos());
     }
   }
 
-  private void atualizarAcao() {
-    AcaoSustentavel acao = db.buscarAcaoPorId(lerInteiro("ID da ação: "));
-    if (acao == null) {
-      System.out.println("Ação não encontrada.");
+  private void filtrarAcoes() {
+    int minimo = lerInteiro("Filtrar ações com quantos pontos ou mais? ");
+    if (minimo < 0) {
+      System.out.println("Erro: o mínimo não pode ser negativo!");
       return;
     }
-    acao.setNome(
-      lerTextoOuPadrao("Nome [" + acao.getNome() + "]: ", acao.getNome())
-    );
-    acao.setDescricao(lerTextoOuPadrao("Descrição: ", acao.getDescricao()));
-    acao.setPontos(lerInteiro("Pontos: "));
-    db.atualizarAcao(acao);
-    System.out.println("Ação atualizada.");
-  }
-
-  private void excluirAcao() {
-    long id = lerInteiro("ID da ação: ");
-    db.excluirAcao(id);
-    System.out.println("Ação excluída (se existia).");
+    List<Acao> resultado = new ArrayList<>();
+    for (Acao a : service.listarAcoes()) {
+      if (a.getPontos() >= minimo) resultado.add(a);
+    }
+    if (resultado.isEmpty()) {
+      System.out.println("Nenhuma ação encontrada nesse filtro.");
+      return;
+    }
+    for (Acao a : resultado) {
+      System.out.printf("• %s (%d pts)%n", a.getNome(), a.getPontos());
+    }
   }
 
   private void menuRecompensas() {
     while (true) {
-      System.out.println("\n--- RECOMPENSAS ---");
-      System.out.println("1 - Cadastrar");
-      System.out.println("2 - Listar");
-      System.out.println("3 - Atualizar");
-      System.out.println("4 - Excluir");
+      System.out.println("\n===== GERENCIAR RECOMPENSAS =====");
+      System.out.println("1 - Incluir recompensa");
+      System.out.println("2 - Alterar recompensa");
+      System.out.println("3 - Excluir recompensa");
+      System.out.println("4 - Listar recompensas");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
-        case 1 -> cadastrarRecompensa();
-        case 2 -> listarRecompensas();
-        case 3 -> atualizarRecompensa();
-        case 4 -> excluirRecompensa();
+        case 1 -> incluirRecompensa();
+        case 2 -> alterarRecompensa();
+        case 3 -> excluirRecompensa();
+        case 4 -> listarRecompensasCrud();
         default -> System.out.println("Opção inválida.");
       }
     }
   }
 
-  private void cadastrarRecompensa() {
-    Recompensa recompensa = new Recompensa(
-      lerTexto("Título: "),
-      lerTexto("Descrição: "),
-      lerInteiro("Custo em pontos: "),
-      lerInteiro("Estoque: ")
-    );
-    db.inserirRecompensa(recompensa);
-    System.out.println("Recompensa cadastrada.");
+  private void incluirRecompensa() {
+    try {
+      String titulo = lerTexto("Título: ");
+      int custo = lerInteiro("Custo em pontos: ");
+      int estoque = lerInteiro("Estoque: ");
+      String erro = "";
+      if (titulo.isBlank()) {
+        erro = "O título é obrigatório!";
+      } else if (custo <= 0 || estoque < 0) {
+        erro = "O custo deve ser positivo e o estoque não pode ser negativo!";
+      } else if (service.recompensas().buscarPorTitulo(titulo) != null) {
+        erro = "Já existe recompensa com este título!";
+      }
+      if (!erro.isEmpty()) {
+        System.out.println("Erro: " + erro);
+        return;
+      }
+      String descricao = lerTextoOuPadrao("Descrição (opcional): ", "");
+      Recompensa recompensa = new Recompensa(titulo, descricao, custo, estoque);
+      service.recompensas().inserir(recompensa);
+      System.out.println("Recompensa cadastrada com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+    catch (IllegalArgumentException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
   }
 
-  private void listarRecompensas() {
-    List<Recompensa> recompensas = db.listarRecompensas();
+  private void alterarRecompensa() {
+    try {
+      System.out.println("\nRecompensas cadastradas:");
+      listarRecompensasCrud();
+      List<Recompensa> recompensas = service.listarRecompensas();
+      if (recompensas.isEmpty()) return;
+      int escolha = lerInteiro("\nNúmero da recompensa a alterar (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Alteração cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > recompensas.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      Recompensa recompensa = recompensas.get(escolha - 1);
+      String novoNome = lerTextoOuPadrao("Novo título [" + recompensa.getTitulo() + "]: ", recompensa.getTitulo());
+      int novoCusto = lerInteiro("Novo custo: ");
+      int novoEstoque = lerInteiro("Novo estoque: ");
+      if (novoCusto <= 0 || novoEstoque < 0) {
+        System.out.println("Erro: o custo deve ser positivo e o estoque não pode ser negativo!");
+        return;
+      }
+      recompensa.setTitulo(novoNome);
+      recompensa.setCusto(novoCusto);
+      recompensa.setEstoque(novoEstoque);
+      service.recompensas().atualizar(recompensa);
+      System.out.println("Recompensa alterada com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void excluirRecompensa() {
+    try {
+      System.out.println("\nRecompensas cadastradas:");
+      List<Recompensa> recompensas = service.listarRecompensas();
+      if (recompensas.isEmpty()) {
+        System.out.println("Nenhuma recompensa cadastrada.");
+        return;
+      }
+      listarRecompensasCrud();
+      int escolha = lerInteiro("\nNúmero da recompensa a excluir (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Exclusão cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > recompensas.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      service.excluirRecompensa(recompensas.get(escolha - 1).getId());
+      System.out.println("Recompensa excluída com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void listarRecompensasCrud() {
+    List<Recompensa> recompensas = service.listarRecompensas();
     if (recompensas.isEmpty()) {
       System.out.println("Nenhuma recompensa cadastrada.");
       return;
     }
-    for (Recompensa r : recompensas) {
-      System.out.printf(
-        "%d - %s | %s | %d pts | estoque %d%n",
-        r.getId(),
-        r.getTitulo(),
-        r.getDescricao(),
-        r.getCusto(),
-        r.getEstoque()
-      );
+    for (int i = 0; i < recompensas.size(); i++) {
+      Recompensa r = recompensas.get(i);
+      String badge = r.getDestaque().isEmpty() ? "" : " [" + r.getDestaque() + "]";
+      String categoria = r.getCategoria().isEmpty() ? "-" : r.getCategoria();
+      System.out.printf("%d - %s%s | %s | %d pts | estoque %d%n", i + 1, r.getTitulo(), badge, categoria, r.getCusto(), r.getEstoque());
     }
   }
 
-  private void atualizarRecompensa() {
-    Recompensa recompensa =
-      db.buscarRecompensaPorId(lerInteiro("ID da recompensa: "));
-    if (recompensa == null) {
-      System.out.println("Recompensa não encontrada.");
-      return;
+  /* ─────────────── Utilitários ─────────────── */
+
+  private void anunciarSelosNovos(List<Selo> selos) {
+    if (!selos.isEmpty()) {
+      System.out.println("Selos conquistados agora: " + nomes(selos));
     }
-    recompensa.setTitulo(
-      lerTextoOuPadrao(
-        "Título [" + recompensa.getTitulo() + "]: ",
-        recompensa.getTitulo()
-      )
-    );
-    recompensa.setDescricao(
-      lerTextoOuPadrao("Descrição: ", recompensa.getDescricao())
-    );
-    recompensa.setCusto(lerInteiro("Custo em pontos: "));
-    recompensa.setEstoque(lerInteiro("Estoque: "));
-    db.atualizarRecompensa(recompensa);
-    System.out.println("Recompensa atualizada.");
   }
 
-  private void excluirRecompensa() {
-    long id = lerInteiro("ID da recompensa: ");
-    db.excluirRecompensa(id);
-    System.out.println("Recompensa excluída (se existia).");
+  private String nomes(List<Selo> selos) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < selos.size(); i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(selos.get(i).getNome());
+    }
+    return sb.toString();
+  }
+
+  private List<Usuario> listarUsuarios() {
+    try {
+      return service.usuarios().listar();
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao listar usuários: " + e.getMessage(), e);
+    }
+  }
+
+  private List<Historico> listarHistorico() {
+    try {
+      return service.historico().listarPorUsuario(usuarioLogado.getId());
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao consultar histórico: " + e.getMessage(), e);
+    }
   }
 
   private int lerInteiro(String rotulo) {

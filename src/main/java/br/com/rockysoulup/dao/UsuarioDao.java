@@ -10,22 +10,22 @@ import java.util.Objects;
 public final class UsuarioDao {
 
   public void inserir(Usuario usuario) throws SQLException {
+    try (Connection c = ConnectionFactory.abrir()) {
+      inserir(c, usuario);
+    }
+  }
+
+  public void inserir(Connection c, Usuario usuario) throws SQLException {
     Objects.requireNonNull(usuario, "Usuário é obrigatório");
     String sql =
-      "INSERT INTO USUARIO (NOME, EMAIL, PONTOS, NIVEL) VALUES (?, ?, ?, ?)";
-    try (
-      Connection connection = ConnectionFactory.abrir();
-      PreparedStatement statement = connection.prepareStatement(
-        sql,
-        new String[] { "ID_USUARIO" }
-      )
-    ) {
-      statement.setString(1, usuario.getNome());
-      statement.setString(2, usuario.getEmail());
-      statement.setInt(3, usuario.getPontos());
-      statement.setString(4, usuario.getNivel());
-      statement.executeUpdate();
-      try (ResultSet keys = statement.getGeneratedKeys()) {
+      "INSERT INTO USUARIO (NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS) VALUES (?, ?, ?, ?)";
+    try (PreparedStatement p = c.prepareStatement(sql, new String[] { "ID_USUARIO" })) {
+      p.setString(1, usuario.getNome());
+      p.setString(2, usuario.getEmail());
+      p.setInt(3, usuario.getPontos());
+      p.setInt(4, usuario.getResgatados());
+      p.executeUpdate();
+      try (ResultSet keys = p.getGeneratedKeys()) {
         if (keys.next()) usuario.setId(keys.getLong(1));
       }
     }
@@ -34,81 +34,87 @@ public final class UsuarioDao {
   public List<Usuario> listar() throws SQLException {
     List<Usuario> usuarios = new ArrayList<>();
     try (
-      Connection connection = ConnectionFactory.abrir();
-      Statement statement = connection.createStatement();
-      ResultSet result = statement.executeQuery(
-        "SELECT * FROM USUARIO ORDER BY ID_USUARIO"
+      Connection c = ConnectionFactory.abrir();
+      Statement s = c.createStatement();
+      ResultSet r = s.executeQuery(
+        "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO ORDER BY NR_PONTOS DESC, NM_USUARIO"
       )
     ) {
-      while (result.next()) usuarios.add(mapear(result));
+      while (r.next()) usuarios.add(mapear(r));
     }
     return usuarios;
   }
 
   public Usuario buscarPorId(long id) throws SQLException {
     try (
-      Connection connection = ConnectionFactory.abrir();
-      PreparedStatement statement = connection.prepareStatement(
-        "SELECT * FROM USUARIO WHERE ID_USUARIO = ?"
+      Connection c = ConnectionFactory.abrir();
+      PreparedStatement p = c.prepareStatement(
+        "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO WHERE ID_USUARIO = ?"
       )
     ) {
-      statement.setLong(1, id);
-      try (ResultSet result = statement.executeQuery()) {
-        return result.next() ? mapear(result) : null;
+      p.setLong(1, id);
+      try (ResultSet r = p.executeQuery()) {
+        return r.next() ? mapear(r) : null;
       }
     }
   }
 
   public Usuario buscarPorEmail(String email) throws SQLException {
     try (
-      Connection connection = ConnectionFactory.abrir();
-      PreparedStatement statement = connection.prepareStatement(
-        "SELECT * FROM USUARIO WHERE EMAIL = ?"
+      Connection c = ConnectionFactory.abrir();
+      PreparedStatement p = c.prepareStatement(
+        "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO WHERE LOWER(DS_EMAIL) = ?"
       )
     ) {
-      statement.setString(1, email.trim().toLowerCase());
-      try (ResultSet result = statement.executeQuery()) {
-        return result.next() ? mapear(result) : null;
+      p.setString(1, email.trim().toLowerCase());
+      try (ResultSet r = p.executeQuery()) {
+        return r.next() ? mapear(r) : null;
       }
     }
   }
 
   public void atualizar(Usuario usuario) throws SQLException {
+    try (Connection c = ConnectionFactory.abrir()) {
+      atualizar(c, usuario);
+    }
+  }
+
+  public void atualizar(Connection c, Usuario usuario) throws SQLException {
     Objects.requireNonNull(usuario, "Usuário é obrigatório");
     String sql =
-      "UPDATE USUARIO SET NOME = ?, EMAIL = ?, PONTOS = ?, NIVEL = ? WHERE ID_USUARIO = ?";
-    try (
-      Connection connection = ConnectionFactory.abrir();
-      PreparedStatement statement = connection.prepareStatement(sql)
-    ) {
-      statement.setString(1, usuario.getNome());
-      statement.setString(2, usuario.getEmail());
-      statement.setInt(3, usuario.getPontos());
-      statement.setString(4, usuario.getNivel());
-      statement.setLong(5, usuario.getId());
-      statement.executeUpdate();
+      "UPDATE USUARIO SET NM_USUARIO = ?, DS_EMAIL = ?, NR_PONTOS = ?, NR_PONTOS_RESGATADOS = ? WHERE ID_USUARIO = ?";
+    try (PreparedStatement p = c.prepareStatement(sql)) {
+      p.setString(1, usuario.getNome());
+      p.setString(2, usuario.getEmail());
+      p.setInt(3, usuario.getPontos());
+      p.setInt(4, usuario.getResgatados());
+      p.setLong(5, usuario.getId());
+      p.executeUpdate();
     }
   }
 
   public void excluir(long id) throws SQLException {
-    try (
-      Connection connection = ConnectionFactory.abrir();
-      PreparedStatement statement = connection.prepareStatement(
-        "DELETE FROM USUARIO WHERE ID_USUARIO = ?"
-      )
-    ) {
-      statement.setLong(1, id);
-      statement.executeUpdate();
+    try (Connection c = ConnectionFactory.abrir()) {
+      excluir(c, id);
     }
   }
 
-  private Usuario mapear(ResultSet result) throws SQLException {
+  public void excluir(Connection c, long id) throws SQLException {
+    try (PreparedStatement p = c.prepareStatement(
+      "DELETE FROM USUARIO WHERE ID_USUARIO = ?"
+    )) {
+      p.setLong(1, id);
+      p.executeUpdate();
+    }
+  }
+
+  private Usuario mapear(ResultSet r) throws SQLException {
     Usuario usuario = new Usuario();
-    usuario.setId(result.getLong("ID_USUARIO"));
-    usuario.setNome(result.getString("NOME"));
-    usuario.setEmail(result.getString("EMAIL"));
-    usuario.setPontos(result.getInt("PONTOS"));
-    usuario.setNivel(result.getString("NIVEL"));
+    usuario.setId(r.getLong("ID_USUARIO"));
+    usuario.setNome(r.getString("NM_USUARIO"));
+    usuario.setEmail(r.getString("DS_EMAIL"));
+    usuario.setPontos(r.getInt("NR_PONTOS"));
+    usuario.setResgatados(r.getInt("NR_PONTOS_RESGATADOS"));
     return usuario;
   }
 }
