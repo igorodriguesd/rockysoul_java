@@ -1,7 +1,7 @@
 package br.com.rockysoulup;
 
-import br.com.rockysoulup.dao.*;
 import br.com.rockysoulup.model.*;
+import br.com.rockysoulup.repository.*;
 import br.com.rockysoulup.service.GamificacaoService;
 import br.com.rockysoulup.service.RockySoulService;
 import java.sql.SQLException;
@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Classe de teste: método main que instancia as classes modelo, valida as
  * regras de negócio e exercita o CRUD completo (Create/Read/Update/Delete)
- * da camada DAO diretamente no banco Oracle, simulando a utilização da
+ * da camada Repository diretamente no banco Oracle, simulando a utilização da
  * aplicação.
  */
 public class TesteSistema {
@@ -85,35 +85,35 @@ public class TesteSistema {
       + " (faltam " + ana.pontosParaProximoNivel() + " pts)");
   }
 
-  /** Cenário 3: DAO + Service contra o banco Oracle — CRUD completo. */
+  /** Cenário 3: Repository + Service contra o banco Oracle — CRUD completo. */
   private static void testeCrudNoBanco() throws Exception {
     String suf = String.valueOf(System.currentTimeMillis());
-    UsuarioDao usuarioDao = new UsuarioDao();
-    HistoricoDao historicoDao = new HistoricoDao();
-    SeloDao seloDao = new SeloDao();
-    UsuarioSeloDao usDao = new UsuarioSeloDao();
+    UsuarioRepository usuarioRepository = new UsuarioRepository();
+    HistoricoRepository historicoRepository = new HistoricoRepository();
+    SeloRepository seloRepository = new SeloRepository();
+    UsuarioSeloRepository usuarioSeloRepository = new UsuarioSeloRepository();
     RockySoulService service = new RockySoulService();
 
     System.out.println("\n--- 3. CRUD Usuario (Create/Read/Update/Delete) ---");
     Usuario crudUser = new Usuario("Crud Teste " + suf, "crud." + suf + "@email.com");
-    usuarioDao.inserir(crudUser);
+    usuarioRepository.inserir(crudUser);
     System.out.println("Create -> id " + crudUser.getId());
-    Usuario lido = usuarioDao.buscarPorId(crudUser.getId());
+    Usuario lido = usuarioRepository.buscarPorId(crudUser.getId());
     System.out.println("Read (por id) -> " + lido);
-    System.out.println("Read (por e-mail) -> " + usuarioDao.buscarPorEmail(crudUser.getEmail()).getNome());
+    System.out.println("Read (por e-mail) -> " + usuarioRepository.buscarPorEmail(crudUser.getEmail()).getNome());
     lido.setNome("Crud Renomeado " + suf);
-    usuarioDao.atualizar(lido);
-    System.out.println("Update -> " + usuarioDao.buscarPorId(crudUser.getId()).getNome());
-    usuarioDao.excluir(crudUser.getId());
-    System.out.println("Delete -> " + (usuarioDao.buscarPorId(crudUser.getId()) == null ? "removido" : "ERRO"));
+    usuarioRepository.atualizar(lido);
+    System.out.println("Update -> " + usuarioRepository.buscarPorId(crudUser.getId()).getNome());
+    usuarioRepository.excluir(crudUser.getId());
+    System.out.println("Delete -> " + (usuarioRepository.buscarPorId(crudUser.getId()) == null ? "removido" : "ERRO"));
 
     System.out.println("\n--- 4. CRUD Selo ---");
     Selo selo = new Selo("Selo teste " + suf, "descrição", 10);
-    seloDao.inserir(selo);
+    seloRepository.inserir(selo);
     selo.setNome("Selo renomeado " + suf);
-    seloDao.atualizar(selo);
-    System.out.println("Create/Read/Update -> " + seloDao.buscarPorId(selo.getId()).getNome());
-    seloDao.excluir(selo.getId());
+    seloRepository.atualizar(selo);
+    System.out.println("Create/Read/Update -> " + seloRepository.buscarPorId(selo.getId()).getNome());
+    seloRepository.excluir(selo.getId());
     System.out.println("Delete -> ok");
 
     System.out.println("\n--- 5. Fluxo da aplicação (login, ação, selo) ---");
@@ -129,31 +129,31 @@ public class TesteSistema {
     }
 
     Selo seloInicio = new Selo("Selo início " + suf, "mínimo 0", 0);
-    seloDao.inserir(seloInicio);
+    seloRepository.inserir(seloInicio);
 
     List<Selo> concedidos = service.registrarAcao(ana, "Reciclagem", 30);
     System.out.println("registrarAcao -> pontos " + ana.getPontos()
       + ", selos concedidos: " + nomes(concedidos));
 
-    Historico historico = historicoDao.listarPorUsuario(ana.getId()).get(0);
+    Historico historico = historicoRepository.listarPorUsuario(ana.getId()).get(0);
     historico.setDescricao("Ação editada");
-    historicoDao.atualizar(historico);
-    System.out.println("historico update -> " + historicoDao.listarPorUsuario(ana.getId()).get(0).getDescricao());
+    historicoRepository.atualizar(historico);
+    System.out.println("historico update -> " + historicoRepository.listarPorUsuario(ana.getId()).get(0).getDescricao());
 
-    LIMPEZA.add(() -> limparFluxo(usuarioDao, historicoDao, usDao,
-      seloDao, ana, seloInicio.getId()));
+    LIMPEZA.add(() -> limparFluxo(usuarioRepository, historicoRepository, usuarioSeloRepository,
+      seloRepository, ana, seloInicio.getId()));
 
     System.out.println("\n--- 6. Ranking e selos ---");
     System.out.println("selos do usuário -> " + nomes(service.listarSelosConcedidos(ana)));
-    List<Usuario> ranking = usuarioDao.listar();
+    List<Usuario> ranking = usuarioRepository.listar();
     System.out.println("ranking (top 5): " + ranking.stream().limit(5)
       .map(u -> u.getNome() + ":" + u.getPontos()).reduce((x, y) -> x + " | " + y).orElse("-"));
 
     System.out.println("\n--- 7. Resgate de recompensa (vitrine com estoque) ---");
-    RecompensaDao recDao = new RecompensaDao();
+    RecompensaRepository recompensaRepository = new RecompensaRepository();
     Recompensa rec = new Recompensa("Recompensa teste " + suf, "benefício de teste", 150, 1);
-    recDao.inserir(rec);
-    LIMPEZA.add(() -> tenta(() -> recDao.excluir(rec.getId())));
+    recompensaRepository.inserir(rec);
+    LIMPEZA.add(() -> tenta(() -> recompensaRepository.excluir(rec.getId())));
 
     boolean recusou = false;
     try {
@@ -172,7 +172,7 @@ public class TesteSistema {
     if (resgatada.getEstoque() != 0 || ana.getPontos() != 10 || ana.getResgatados() != 150) {
       throw new IllegalStateException("Falha: resgate não aplicado corretamente");
     }
-    Usuario anaBd = usuarioDao.buscarPorId(ana.getId());
+    Usuario anaBd = usuarioRepository.buscarPorId(ana.getId());
     System.out.println("resgate -> " + resgatada.getTitulo()
       + " | estoque restante " + resgatada.getEstoque()
       + " | saldo " + anaBd.getPontos()
@@ -206,25 +206,25 @@ public class TesteSistema {
 
   /** Remove, na ordem correta (filhos antes do pai), os dados do fluxo. */
   private static void limparFluxo(
-    UsuarioDao usuarioDao,
-    HistoricoDao historicoDao,
-    UsuarioSeloDao usDao,
-    SeloDao seloDao,
+    UsuarioRepository usuarioRepository,
+    HistoricoRepository historicoRepository,
+    UsuarioSeloRepository usuarioSeloRepository,
+    SeloRepository seloRepository,
     Usuario ana,
     long idSeloInicio
   ) {
     tenta(() -> {
-      for (Historico h : historicoDao.listarPorUsuario(ana.getId())) {
-        historicoDao.excluir(h.getId());
+      for (Historico h : historicoRepository.listarPorUsuario(ana.getId())) {
+        historicoRepository.excluir(h.getId());
       }
     });
     tenta(() -> {
-      for (UsuarioSelo rel : usDao.listarPorUsuario(ana.getId())) {
-        usDao.excluir(ana.getId(), rel.getSeloId());
+      for (UsuarioSelo rel : usuarioSeloRepository.listarPorUsuario(ana.getId())) {
+        usuarioSeloRepository.excluir(ana.getId(), rel.getSeloId());
       }
     });
-    tenta(() -> usuarioDao.excluir(ana.getId()));
-    tenta(() -> seloDao.excluir(idSeloInicio));
+    tenta(() -> usuarioRepository.excluir(ana.getId()));
+    tenta(() -> seloRepository.excluir(idSeloInicio));
     System.out.println("fluxo de teste removido do banco");
   }
 

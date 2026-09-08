@@ -1,7 +1,7 @@
 package br.com.rockysoulup;
 
-import br.com.rockysoulup.dao.*;
 import br.com.rockysoulup.model.*;
+import br.com.rockysoulup.repository.*;
 import br.com.rockysoulup.service.RockySoulService;
 import java.sql.SQLException;
 import java.util.*;
@@ -16,9 +16,9 @@ public final class TesteCrudCompleto {
   public static void main(String[] args) throws Exception {
     String suf = String.valueOf(System.currentTimeMillis());
     RockySoulService service = new RockySoulService();
-    UsuarioDao usuarioDao = new UsuarioDao();
-    HistoricoDao historicoDao = new HistoricoDao();
-    SeloDao seloDao = new SeloDao();
+    UsuarioRepository usuarioRepository = new UsuarioRepository();
+    HistoricoRepository historicoRepository = new HistoricoRepository();
+    SeloRepository seloRepository = new SeloRepository();
 
     List<Selo> selosCriados = new ArrayList<>();
     List<Usuario> criados = new ArrayList<>();
@@ -31,9 +31,9 @@ public final class TesteCrudCompleto {
       Selo bronze = new Selo("Bronze " + suf, "atingir 100 pts", 100);
       Selo prata = new Selo("Prata " + suf, "atingir 300 pts", 300);
       Selo ouro = new Selo("Ouro " + suf, "atingir 500 pts", 500);
-      seloDao.inserir(bronze);
-      seloDao.inserir(prata);
-      seloDao.inserir(ouro);
+      seloRepository.inserir(bronze);
+      seloRepository.inserir(prata);
+      seloRepository.inserir(ouro);
       selosCriados.addAll(Arrays.asList(bronze, prata, ouro));
 
       int[][] acoes = {
@@ -95,7 +95,7 @@ public final class TesteCrudCompleto {
         if (selos != selosEsperados[i]) {
           throw new IllegalStateException("Falha " + u.getNome() + ": esperava " + selosEsperados[i] + " selos, veio " + selos);
         }
-        Usuario doBanco = usuarioDao.buscarPorId(u.getId());
+        Usuario doBanco = usuarioRepository.buscarPorId(u.getId());
         if (doBanco == null || doBanco.getPontos() != metas[i] || !niveisEsperados[i].equals(doBanco.getNivel())) {
           throw new IllegalStateException("Falha " + u.getNome() + ": banco dessincronizado");
         }
@@ -106,7 +106,7 @@ public final class TesteCrudCompleto {
       for (int i = 0; i < 10; i++) {
         Usuario u = criados.get(i);
         int esperado = acoes[i].length;
-        if (historicoDao.listarPorUsuario(u.getId()).size() != esperado) {
+        if (historicoRepository.listarPorUsuario(u.getId()).size() != esperado) {
           throw new IllegalStateException("Falha " + u.getNome() + ": historico incompleto");
         }
       }
@@ -116,8 +116,8 @@ public final class TesteCrudCompleto {
       Usuario u2 = criados.get(1);
       u2.setNome("User 02 renomeado " + suf);
       u2.setEmail("renomeado." + suf + "@email.com");
-      usuarioDao.atualizar(u2);
-      if (!usuarioDao.buscarPorEmail(u2.getEmail()).getNome().equals(u2.getNome())) {
+      usuarioRepository.atualizar(u2);
+      if (!usuarioRepository.buscarPorEmail(u2.getEmail()).getNome().equals(u2.getNome())) {
         throw new IllegalStateException("Falha: update nome/e-mail não persistiu");
       }
       System.out.println("Update nome+e-mail -> ok");
@@ -125,16 +125,16 @@ public final class TesteCrudCompleto {
       System.out.println("\n--- 5. Update direto de pontos recalcula o nível ---");
       Usuario u1 = criados.get(0);
       u1.setPontos(250);
-      usuarioDao.atualizar(u1);
-      if (!"BROTO".equals(usuarioDao.buscarPorId(u1.getId()).getNivel())) {
+      usuarioRepository.atualizar(u1);
+      if (!"BROTO".equals(usuarioRepository.buscarPorId(u1.getId()).getNivel())) {
         throw new IllegalStateException("Falha: nível deveria recalcular para BROTO");
       }
       u1.setPontos(30);
-      usuarioDao.atualizar(u1);
+      usuarioRepository.atualizar(u1);
       System.out.println("Pontos+recalculo de nível -> ok (250=BROTO, restaurado 30=SEMENTE)");
 
       System.out.println("\n--- 6. Ranking ordenado por pontos ---");
-      List<Usuario> ranking = usuarioDao.listar();
+      List<Usuario> ranking = usuarioRepository.listar();
       if (ranking.isEmpty() || ranking.get(0).getPontos() != 590) {
         throw new IllegalStateException("Falha: ranking deveria começar em 590 pts");
       }
@@ -151,22 +151,22 @@ public final class TesteCrudCompleto {
       Usuario u10 = criados.get(9);
       long id10 = u10.getId();
       service.excluirUsuario(id10);
-      if (usuarioDao.buscarPorId(id10) != null
-        || !historicoDao.listarPorUsuario(id10).isEmpty()
-        || seloDao.buscarPorId(bronze.getId()) == null) {
+      if (usuarioRepository.buscarPorId(id10) != null
+        || !historicoRepository.listarPorUsuario(id10).isEmpty()
+        || seloRepository.buscarPorId(bronze.getId()) == null) {
         throw new IllegalStateException("Falha: cascata do usuário incompleta");
       }
       System.out.println("User 10 e seus dependentes removidos -> ok; selos/banco intactos.");
 
       System.out.println("\n--- 8. Delete selo com vínculos (cascata em serviço) ---");
       try {
-        seloDao.excluir(bronze.getId());
+        seloRepository.excluir(bronze.getId());
         throw new IllegalStateException("Falha: pisada na FK deveria ter estourado ORA-02292");
       } catch (SQLException e) {
         System.out.println("Exclusão direta de selo com vínculos -> bloqueada pela FK (" + primeiroErro(e) + ")");
       }
       service.excluirSelo(bronze.getId());
-      if (seloDao.buscarPorId(bronze.getId()) != null) {
+      if (seloRepository.buscarPorId(bronze.getId()) != null) {
         throw new IllegalStateException("Falha: cascata do selo incompleta");
       }
       System.out.println("service.excluirSelo -> removido com vínculos -> ok");

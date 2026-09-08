@@ -120,7 +120,7 @@ No Windows também existe o `run.bat` (compila e abre o sistema).
 | `br.com.rockysoulup` | `Application` (menu/console) e as suítes `TesteSistema`, `TesteCrudCompleto` |
 | `model` | Entidades: `Usuario`, `Historico`, `Selo`, `UsuarioSelo`, `Acao`, `Recompensa` |
 | `service` | Regras de negócio: `GamificacaoService` e `RockySoulService` (orquestração com transações) |
-| `dao` | Camada JDBC: CRUD completo para as 6 entidades |
+| `repository` | Camada de persistência (Repository): CRUD completo em JDBC para as 6 entidades |
 | `connection` | `ConnectionFactory` (conexão Oracle com credenciais no código) |
 | `database` | `SchemaSetup` (cria as tabelas) e script `database/schema_revisado_oracle.sql` |
 | `src/test` | Testes unitários JUnit 5 (sem banco) |
@@ -136,7 +136,7 @@ No Windows também existe o `run.bat` (compila e abre o sistema).
 ## Conceitos aplicados
 
 - DDD/POO: encapsulamento, validações em construtores, getters e setters.
-- Camadas separadas: interface (console) → serviço (regras + transações) → DAO/JDBC → Oracle.
+- Camadas separadas: interface (console) → serviço (regras + transações) → Repository/JDBC → Oracle.
 - JDBC com `PreparedStatement`, `getGeneratedKeys` e transações com rollback.
 - Regras de negócio reais: e-mail único, conquista automática de selos, resgate atômico
   (baixa de estoque + desconto de pontos + resgatados) e exclusões em cascata.

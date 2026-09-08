@@ -7,17 +7,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-/** Abre conexoes JDBC com o Oracle.
- *
- * <p>As credenciais de acesso ao banco estao inseridas no proprio codigo
- * (constantes abaixo), conforme a rubrica da entrega. Variaveis de ambiente
- * e o arquivo db.properties podem sobrepor esses valores quando definidos:
- * <ol>
- *   <li>Variaveis de ambiente DB_URL, DB_USER e DB_PASSWORD;</li>
- *   <li>Arquivo db.properties (no classpath);</li>
- *   <li>Valores padrao definidos no codigo.</li>
- * </ol>
- */
+// Abre conexoes com o Oracle: credenciais no codigo, que podem ser
+// sobrepostas por variaveis de ambiente (DB_URL, DB_USER, DB_PASSWORD)
+// ou pelo arquivo db.properties.
 public final class ConnectionFactory {
 
   private static final String URL_PADRAO = "jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL";
