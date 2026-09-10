@@ -65,6 +65,19 @@ class GamificacaoServiceTest {
   }
 
   @Test
+  void deveUsarChanceDeDropPorRaridade() {
+    Carta comum = new Carta("Reciclagem", "Descrição", "Recursos", "COMUM");
+    Carta incomum = new Carta("Água Viva", "Descrição", "Guardiões da Água", "INCOMUM");
+    Carta lendaria = new Carta("Muda do Amanhã", "Descrição", "Cultivo", "LENDARIA");
+
+    assertEquals(75, comum.getChanceDeDrop());
+    assertEquals(55, incomum.getChanceDeDrop());
+    assertEquals(10, lendaria.getChanceDeDrop());
+    assertEquals("COMUM", Carta.sortearRaridadeAleatoria(10));
+    assertEquals("LENDARIA", Carta.sortearRaridadeAleatoria(100));
+  }
+
+  @Test
   void deveValidarRegrasDoModeloDeCarta() {
     assertThrows(
         IllegalArgumentException.class,

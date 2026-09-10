@@ -214,6 +214,24 @@ public final class RockySoulService {
     }
   }
 
+  public Carta sortearCartaPorRaridade(List<Carta> catalogo) {
+    if (catalogo == null || catalogo.isEmpty()) {
+      throw new IllegalStateException("Erro: catálogo de cartas vazio!");
+    }
+
+    String raridadeSorteada = Carta.sortearRaridadeAleatoria();
+    List<Carta> cartasDaRaridade = catalogo.stream()
+        .filter(c -> c.getRaridade().equals(raridadeSorteada))
+        .toList();
+
+    if (cartasDaRaridade.isEmpty()) {
+      return catalogo.get(0);
+    }
+
+    int indice = (int) (Math.random() * cartasDaRaridade.size());
+    return cartasDaRaridade.get(indice);
+  }
+
   /**
    * Resgata uma recompensa: valida estoque/saldo, desconta pontos e baixa
    * estoque.
