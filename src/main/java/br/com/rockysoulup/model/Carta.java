@@ -2,12 +2,8 @@ package br.com.rockysoulup.model;
 
 import java.text.Normalizer;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Cartinha colecionável com raridade e conjunto temático.
- * A lógica acompanha o conceito do frontend React: raridades e fragmentos por
- * repetição.
- */
 public class Carta {
 
     private static final Map<String, Integer> FRAGMENTOS_POR_RARIDADE = Map.of(
@@ -16,6 +12,13 @@ public class Carta {
             "RARA", 10,
             "EPICA", 20,
             "LENDARIA", 40);
+
+    private static final Map<String, Integer> CHANCE_DE_DROP = Map.of(
+            "COMUM", 75,
+            "INCOMUM", 55,
+            "RARA", 35,
+            "EPICA", 20,
+            "LENDARIA", 10);
 
     private Long id;
     private String nome;
@@ -91,6 +94,34 @@ public class Carta {
 
     public int getFragmentosPorRaridade() {
         return FRAGMENTOS_POR_RARIDADE.get(raridade);
+    }
+
+    public int getChanceDeDrop() {
+        return CHANCE_DE_DROP.get(raridade);
+    }
+
+    public static String sortearRaridadeAleatoria() {
+        int valor = ThreadLocalRandom.current().nextInt(1, 101);
+        return sortearRaridadeAleatoria(valor);
+    }
+
+    public static String sortearRaridadeAleatoria(int valorSorteado) {
+        if (valorSorteado < 1 || valorSorteado > 100) {
+            throw new IllegalArgumentException("O valor sorteado deve estar entre 1 e 100");
+        }
+        if (valorSorteado <= 75) {
+            return "COMUM";
+        }
+        if (valorSorteado <= 90) {
+            return "INCOMUM";
+        }
+        if (valorSorteado <= 96) {
+            return "RARA";
+        }
+        if (valorSorteado <= 99) {
+            return "EPICA";
+        }
+        return "LENDARIA";
     }
 
     public static String normalizarRaridade(String valor) {

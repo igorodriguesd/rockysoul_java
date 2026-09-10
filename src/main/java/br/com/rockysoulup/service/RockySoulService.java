@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Orquestra as operações do sistema sobre o Oracle, com transações. */
 public final class RockySoulService {
 
   private final GamificacaoService gamificacao = new GamificacaoService();
@@ -21,10 +20,6 @@ public final class RockySoulService {
   private final CartaRepository cartaRepository = new CartaRepository();
   private final UsuarioCartaRepository usuarioCartaRepository = new UsuarioCartaRepository();
 
-  /**
-   * Cadastra um novo usuário; rejeita e-mails já cadastrados (regra de e-mail
-   * único).
-   */
   public Usuario cadastrarUsuario(String nome, String email) {
     try {
       if (usuarioRepository.buscarPorEmail(email) != null) {
@@ -39,8 +34,6 @@ public final class RockySoulService {
     }
   }
 
-  // Garante o catálogo padrão (ações, recompensas e selos) quando o banco está
-  // vazio
   public void garantirCatalogo() {
     try {
       if (acaoRepository.listar().isEmpty()) {
@@ -84,16 +77,9 @@ public final class RockySoulService {
       }
       if (cartaRepository.listar().isEmpty()) {
         emTransacao(connection -> {
-          cartaRepository.inserir(connection,
-              new Carta("Água Viva", "Recurso vital para a vida", "Guardiões da Água", "INCOMUM"));
-          cartaRepository.inserir(connection,
-              new Carta("Sol Forte", "Energia limpa em movimento", "Energia Limpa", "EPICA"));
-          cartaRepository.inserir(connection,
-              new Carta("Muda do Amanhã", "Crescimento verde e sustentável", "Cultivo", "LENDARIA"));
-          cartaRepository.inserir(connection,
-              new Carta("Bicicleta do Futuro", "Mobilidade leve e inteligente", "Cidade Verde", "RARA"));
-          cartaRepository.inserir(connection,
-              new Carta("Pilha de Reciclagem", "Pequenos hábitos geram grandes impactos", "Recursos", "COMUM"));
+          for (Carta carta : catalogoPadrao()) {
+            cartaRepository.inserir(connection, carta);
+          }
         });
       }
     } catch (SQLException e) {
@@ -101,7 +87,35 @@ public final class RockySoulService {
     }
   }
 
-  /** Registra uma ação, credita pontos e concede selos automaticamente. */
+  public List<Carta> catalogoPadrao() {
+    return List.of(
+        new Carta("Reciclagem", "Separar corretamente seus resíduos.", "Recursos", "COMUM"),
+        new Carta("Reutilização", "Dar nova vida a objetos e compartilhar dicas.", "Recursos", "INCOMUM"),
+        new Carta("Sacola Reutilizável", "Usar sacolas ecológicas no lugar das descartáveis.", "Recursos", "RARA"),
+        new Carta("Redução de Desperdício", "Consumo consciente com menos desperdício.", "Recursos", "EPICA"),
+
+        new Carta("Economia de Água", "Reduzir o consumo diário de água.", "Guardiões da Água", "COMUM"),
+        new Carta("Banho Rápido", "Tomar banhos curtos e conscientes.", "Guardiões da Água", "INCOMUM"),
+        new Carta("Garrafa Reutilizável", "Adotar garrafa própria no lugar de descartáveis.", "Guardiões da Água",
+            "RARA"),
+        new Carta("Captação de Chuva", "Aproveitar a água da chuva.", "Guardiões da Água", "EPICA"),
+
+        new Carta("Bicicleta", "Pedalar no lugar de usar o carro.", "Cidade Verde", "COMUM"),
+        new Carta("Transporte Público", "Priorizar ônibus e metrô.", "Cidade Verde", "INCOMUM"),
+        new Carta("Mobilidade Elétrica", "Optar por veículos e patinetes elétricos.", "Cidade Verde", "RARA"),
+        new Carta("Ciclovia", "Apoiar e usar infraestrutura cicloviária.", "Cidade Verde", "EPICA"),
+
+        new Carta("Economia de Energia", "Reduzir o consumo de eletricidade em casa.", "Energia Limpa", "COMUM"),
+        new Carta("Iluminação Eficiente", "Trocar lâmpadas por modelos eficientes.", "Energia Limpa", "INCOMUM"),
+        new Carta("Energia Solar", "Gerar energia a partir do sol.", "Energia Limpa", "RARA"),
+        new Carta("Energia Eólica", "Aproveitar a força dos ventos.", "Energia Limpa", "EPICA"),
+
+        new Carta("Plantio", "Plantar árvores e espécies nativas.", "Cultivo", "COMUM"),
+        new Carta("Compostagem", "Transformar resíduos orgânicos em adubo.", "Cultivo", "INCOMUM"),
+        new Carta("Horta Doméstica", "Cultivar alimentos em casa.", "Cultivo", "RARA"),
+        new Carta("Agrofloresta", "Sistema integrado de cultivo com a floresta.", "Cultivo", "LENDARIA"));
+  }
+
   public List<Selo> registrarAcao(Usuario usuario, String descricao, int pontos) {
     try {
       gamificacao.registrarAcao(usuario, pontos);
@@ -119,7 +133,6 @@ public final class RockySoulService {
     }
   }
 
-  /** Concede os selos cujo mínimo já foi atingido e que ainda não foram dados. */
   private List<Selo> concederSelos(Connection connection, Usuario usuario)
       throws SQLException {
     List<Selo> concedidos = new ArrayList<>();
@@ -133,7 +146,6 @@ public final class RockySoulService {
     return concedidos;
   }
 
-  /** Recalcula e concede selos de um usuário sem mudar pontuação. */
   public List<Selo> listarSelosConcedidos(Usuario usuario) {
     try {
       List<Selo> concedidos = new ArrayList<>();
@@ -195,7 +207,7 @@ public final class RockySoulService {
     }
   }
 
-  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta, boolean brilhante) {
+  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta) {
     try {
       Carta carta = cartaRepository.buscarPorId(idCarta);
       if (carta == null) {
@@ -203,13 +215,9 @@ public final class RockySoulService {
       }
       emTransacao(connection -> {
         if (usuarioCartaRepository.jaPossui(connection, usuario.getId(), carta.getId())) {
-          UsuarioCarta existente = new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante);
           usuarioCartaRepository.atualizarQuantidade(connection, usuario.getId(), carta.getId(), 1);
-          if (existente.isBrilhante()) {
-            // mantém a persistência compatível com o modelo da coleção
-          }
         } else {
-          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante));
+          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1));
         }
       });
       return carta;
@@ -218,10 +226,24 @@ public final class RockySoulService {
     }
   }
 
-  /**
-   * Resgata uma recompensa: valida estoque/saldo, desconta pontos e baixa
-   * estoque.
-   */
+  public Carta sortearCartaPorRaridade(List<Carta> catalogo) {
+    if (catalogo == null || catalogo.isEmpty()) {
+      throw new IllegalStateException("Erro: catálogo de cartas vazio!");
+    }
+
+    String raridadeSorteada = Carta.sortearRaridadeAleatoria();
+    List<Carta> cartasDaRaridade = catalogo.stream()
+        .filter(c -> c.getRaridade().equals(raridadeSorteada))
+        .toList();
+
+    if (cartasDaRaridade.isEmpty()) {
+      return catalogo.get(0);
+    }
+
+    int indice = (int) (Math.random() * cartasDaRaridade.size());
+    return cartasDaRaridade.get(indice);
+  }
+
   public Recompensa resgatarRecompensa(Usuario usuario, long idRecompensa) {
     try {
       Recompensa recompensa = recompensaRepository.buscarPorId(idRecompensa);
@@ -268,7 +290,6 @@ public final class RockySoulService {
     return recompensaRepository;
   }
 
-  /** Exclui um usuário com todos os dependentes, em uma única transação. */
   public void excluirUsuario(long id) throws SQLException {
     emTransacao(connection -> {
       historicoRepository.excluirPorUsuario(connection, id);
@@ -277,7 +298,6 @@ public final class RockySoulService {
     });
   }
 
-  /** Exclui um selo e seus vínculos com usuários, em uma única transação. */
   public void excluirSelo(long id) throws SQLException {
     emTransacao(connection -> {
       usuarioSeloRepository.excluirPorSelo(connection, id);
@@ -285,12 +305,10 @@ public final class RockySoulService {
     });
   }
 
-  /** Exclui uma ação do catálogo. */
   public void excluirAcao(long id) throws SQLException {
     emTransacao(connection -> acaoRepository.excluir(connection, id));
   }
 
-  /** Exclui uma recompensa do catálogo. */
   public void excluirRecompensa(long id) throws SQLException {
     emTransacao(connection -> recompensaRepository.excluir(connection, id));
   }

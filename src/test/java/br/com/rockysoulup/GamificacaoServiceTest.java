@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import br.com.rockysoulup.model.*;
 import br.com.rockysoulup.service.GamificacaoService;
+import br.com.rockysoulup.service.RockySoulService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -65,6 +66,19 @@ class GamificacaoServiceTest {
   }
 
   @Test
+  void deveUsarChanceDeDropPorRaridade() {
+    Carta comum = new Carta("Reciclagem", "Descrição", "Recursos", "COMUM");
+    Carta incomum = new Carta("Água Viva", "Descrição", "Guardiões da Água", "INCOMUM");
+    Carta lendaria = new Carta("Muda do Amanhã", "Descrição", "Cultivo", "LENDARIA");
+
+    assertEquals(75, comum.getChanceDeDrop());
+    assertEquals(55, incomum.getChanceDeDrop());
+    assertEquals(10, lendaria.getChanceDeDrop());
+    assertEquals("COMUM", Carta.sortearRaridadeAleatoria(10));
+    assertEquals("LENDARIA", Carta.sortearRaridadeAleatoria(100));
+  }
+
+  @Test
   void deveValidarRegrasDoModeloDeCarta() {
     assertThrows(
         IllegalArgumentException.class,
@@ -87,6 +101,17 @@ class GamificacaoServiceTest {
     assertEquals(3, catalogo.size());
     assertEquals("INCOMUM", catalogo.get(0).getRaridade());
     assertEquals("LENDARIA", catalogo.get(2).getRaridade());
+  }
+
+  @Test
+  void deveTerCatalogoCompletoInspiradoNoReact() {
+    List<Carta> catalogo = new RockySoulService().catalogoPadrao();
+
+    assertEquals(20, catalogo.size());
+    assertTrue(catalogo.stream().anyMatch(c -> c.getNome().equals("Reciclagem")));
+    assertTrue(catalogo.stream().anyMatch(c -> c.getNome().equals("Agrofloresta")));
+    assertTrue(catalogo.stream().anyMatch(c -> c.getNome().equals("Economia de Água")));
+    assertTrue(catalogo.stream().anyMatch(c -> c.getNome().equals("Energia Solar")));
   }
 
   @Test

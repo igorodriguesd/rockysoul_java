@@ -15,12 +15,11 @@ public final class UsuarioCartaRepository {
     }
 
     public void inserir(Connection con, UsuarioCarta usuarioCarta) throws SQLException {
-        String sql = "INSERT INTO USUARIO_CARTA (ID_USUARIO, ID_CARTA, QT_CARTA, ST_BRILHANTE) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO USUARIO_CARTA (ID_USUARIO, ID_CARTA, QT_CARTA) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setLong(1, usuarioCarta.getUsuarioId());
             pstmt.setLong(2, usuarioCarta.getCartaId());
             pstmt.setInt(3, usuarioCarta.getQuantidade());
-            pstmt.setString(4, usuarioCarta.isBrilhante() ? "S" : "N");
             pstmt.executeUpdate();
         }
     }
@@ -37,7 +36,7 @@ public final class UsuarioCartaRepository {
     }
 
     public List<UsuarioCarta> listarPorUsuario(long usuarioId) throws SQLException {
-        String sql = "SELECT ID_USUARIO, ID_CARTA, QT_CARTA, ST_BRILHANTE FROM USUARIO_CARTA WHERE ID_USUARIO = ? ORDER BY ID_CARTA";
+        String sql = "SELECT ID_USUARIO, ID_CARTA, QT_CARTA FROM USUARIO_CARTA WHERE ID_USUARIO = ? ORDER BY ID_CARTA";
         List<UsuarioCarta> lista = new ArrayList<>();
         try (
                 Connection con = ConnectionFactory.abrir();
@@ -45,12 +44,10 @@ public final class UsuarioCartaRepository {
             pstmt.setLong(1, usuarioId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    UsuarioCarta uc = new UsuarioCarta(
+                    lista.add(new UsuarioCarta(
                             rs.getLong("ID_USUARIO"),
                             rs.getLong("ID_CARTA"),
-                            rs.getInt("QT_CARTA"),
-                            "S".equalsIgnoreCase(rs.getString("ST_BRILHANTE")));
-                    lista.add(uc);
+                            rs.getInt("QT_CARTA")));
                 }
             }
         }
