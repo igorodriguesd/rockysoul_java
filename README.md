@@ -1,85 +1,116 @@
-# RockySoul — Sistema de Gamificação Sustentável
+﻿# RockySoul — Sistema de Gamificação Sustentável
 
-Aplicação de **console** em **Java 17 + Maven** que gamifica ações sustentáveis.
-O usuário se autentica, registra ações sustentáveis, acumula **Pontos ECOA**, sobe
-de nível, conquista **selos** automaticamente, coleta **cartas colecionáveis**
-com raridades e fragmentos, resgata **recompensas reais** na vitrine (com estoque)
-e acompanha o **ranking**.
+Aplicação Java 17 + Maven que combina gestão de usuários, ações sustentáveis,
+recompensas e um sistema de cartas colecionáveis inspirados no modelo de jogo do
+frontend React. O usuário acumula pontos, evolui por selo, coleta cartas com
+raridades distintas, resgata benefícios reais e acompanha o ranking da comunidade.
 
-Persistência em **Oracle (FIAP)** via JDBC, com modelo relacional:
-`USUARIO`, `ACAO`, `RECOMPENSA`, `HISTORICO`, `SELO` e `USUARIO_SELO`.
+Persistência em Oracle via JDBC, com relacionamento entre usuários, ações,
+recompensas, histórico, selos, cartas e posse de cartas.
+
+## Funcionalidades principais
+
+- Registro e autenticação de usuários
+- Cadastro de ações sustentáveis com pontuação
+- Progressão por nível e conquista automática de selos
+- Resgate de recompensas com estoque e validação de saldo
+- Sistema de cartas colecionáveis por raridade
+- Coleção por usuário com quantidade por carta
+- Catalogação de cartas e sorteio por raridade
+- Ranking e histórico de atividades
+
+## Sistema de cartas
+
+As cartas foram modeladas para refletir a lógica do projeto React, sem a criação
+separada de um atributo "brilhante". A raridade é a regra principal, e a visual
+variação do card não precisa ser tratada como categoria de gameplay.
+
+### Raridades suportadas
+
+| Raridade | Chance de aparecimento | Fragmentos por carta |
+|---|---:|---:|
+| COMUM | 75% | 3 |
+| INCOMUM | 15% | 5 |
+| RARA | 6% | 10 |
+| EPICA | 3% | 20 |
+| LENDARIA | 1% | 40 |
+
+A lógica de sorteio usa a raridade como critério principal e escolhe uma carta do
+catálogo dentro da raridade sorteada. Cartas raras são mais difíceis de obter e
+geram mais fragmentos ao serem repetidas, em linha com o comportamento do jogo.
+
+### Catálogo padrão de cartas
+
+O catálogo é semeado automaticamente na primeira execução, quando o banco está
+vazio. Ele inclui cartas de diferentes conjuntos temáticos, como recursos,
+conservação de água, mobilidade, energia limpa e cultivo.
+
+Exemplos:
+
+- Recurso: Reciclagem, Reutilização, Sacola Reutilizável, Redução de Desperdício
+- Água: Economia de Água, Banho Rápido, Garrafa Reutilizável, Captação de Chuva
+- Mobilidade: Bicicleta, Transporte Público, Mobilidade Elétrica, Ciclovia
+- Energia: Economia de Energia, Iluminação Eficiente, Energia Solar, Energia Eólica
+- Cultivo: Plantio, Compostagem, Horta Doméstica, Agrofloresta
 
 ## Como abrir no IntelliJ
 
-1. Clone do GitHub (ou abra a pasta baixada).
-2. _File_ → _Open_ → selecione a pasta do projeto (requer JDK 17+; o IntelliJ
-   importa o `pom.xml` e as dependências automaticamente).
-3. Rode a classe `br.com.rockysoulup.Application` (menu principal) ou
-   `br.com.rockysoulup.TesteSistema` (suíte de testes).
-
-Não precisa configurar nada para conectar: as credenciais do banco já estão no código
-(veja "Banco de dados" abaixo).
+1. Clone o repositório ou abra a pasta local.
+2. Vá em File → Open e selecione a pasta do projeto.
+3. O IntelliJ importará o Maven automaticamente.
+4. Rode a classe `br.com.rockysoulup.Application` para acessar o menu principal.
 
 ## Banco de dados
 
 - URL: `jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL`
-- As credenciais (**usuário e senha**) estão **inseridas no código**, na classe
-  `ConnectionFactory` (conta FIAP padrão `rm570651`) — exigência da rubrica da entrega.
-- Para usar outro acesso, crie uma cópia de `src/main/resources/db.properties.example`
-  chamada `db.properties` e preencha `DB_USER`/`DB_PASSWORD`. Esse arquivo é ignorado
-  pelo Git (não vai pro repositório) e o exemplo commitado tem apenas placeholders.
-- Alternativa via variáveis de ambiente: `DB_URL`, `DB_USER` e `DB_PASSWORD`.
+- As credenciais do banco estão configuradas na classe `ConnectionFactory`, conforme a estrutura da entrega FIAP.
+- Também é possível usar um arquivo `db.properties` com base no exemplo em `src/main/resources/db.properties.example`.
+- Alternativa: variáveis de ambiente `DB_URL`, `DB_USER` e `DB_PASSWORD`.
 
 ## Como executar
 
-Requisitos: JDK 17+ e Maven (o driver Oracle `ojdbc11` já está no `pom.xml`).
+Requisitos: JDK 17+ e Maven.
 
 ```bash
-# 1) gerar o fat jar (roda os testes unitários JUnit)
+# 1) compilar e rodar os testes
+mvn clean test
+
+# 2) gerar o artefato
 mvn clean package
 
-# 2) suíte de testes de integração no Oracle (cria, valida e limpa os dados)
-java -cp target/rockysoul-java-1.0-SNAPSHOT.jar br.com.rockysoulup.TesteSistema
-java -cp target/rockysoul-java-1.0-SNAPSHOT.jar br.com.rockysoulup.TesteCrudCompleto
-
-# 3) rodar o sistema
+# 3) executar o sistema
 java -jar target/rockysoul-java-1.0-SNAPSHOT.jar
 ```
 
-No Windows também existe o `run.bat` (compila e abre o sistema).
+No Windows também existe o arquivo `run.bat` para facilitar a execução.
 
-> Importante: `TesteSistema` e `TesteCrudCompleto` usam dados de teste no mesmo banco.
-> Rode-os **em sequência, nunca em paralelo**, e sempre execute o projeto sozinho.
+## Menu principal
 
-## Menu
-
-```
+```text
 ===== MENU PRINCIPAL =====
 1 - Uso do sistema
 2 - Área de cadastro (CRUD)
 0 - Sair
 ```
 
-`1 - Uso do sistema` pede nome/e-mail (cria ou localiza o usuário) e abre o dashboard:
+### Dashboard do usuário
 
-```
+```text
 ===== DASHBOARD SOULUP =====   [ Pontos: X | Resgatados: Y | Nível: Z ]
 1 - Registrar ação sustentável
 2 - Ver meu nível e estatísticas
-3 - Resgatar recompensas (benefícios reais)
+3 - Resgatar recompensas
 4 - Sugestão do avatar
 5 - Ver ranking da semana
 0 - Voltar
 ```
 
-`2 - Área de cadastro (CRUD)` gerencia **usuários**, **ações** e **recompensas**.
+## Catálogo base do sistema
 
-## Catálogo padrão (semeado na primeira execução)
-
-**Ações sustentáveis:**
+### Ações sustentáveis
 
 | Ação | Pontos |
-|---|---|
+|---|---:|
 | Economia de Água | 15 |
 | Economia de Energia | 20 |
 | Banho Rápido | 20 |
@@ -88,10 +119,10 @@ No Windows também existe o `run.bat` (compila e abre o sistema).
 | Transporte Público | 50 |
 | Plantio de Árvore | 100 |
 
-**Recompensas (custo em pontos — estoque limitado):**
+### Recompensas
 
 | Recompensa | Custo | Estoque | Categoria | Destaque |
-|---|---|---|---|---|
+|---|---:|---:|---|---|
 | Cupom Reciclagem | 150 | 30 | Cupons | |
 | Desconto Água | 180 | 30 | Energia | |
 | Desconto Energia | 200 | 50 | Energia | Novo |
@@ -101,48 +132,41 @@ No Windows também existe o `run.bat` (compila e abre o sistema).
 | Muda de Árvore | 500 | 20 | Natureza | Top 1 |
 | Adoção de Árvore | 800 | 2 | Natureza | Top 1 |
 
-**Selos (conquistados automaticamente ao atingir os pontos mínimos):**
+### Selos
 
 | Selo | Pontos mínimos |
-|---|---|
+|---|---:|
 | Semente | 100 |
 | Broto | 300 |
 | Árvore | 600 |
 | Expert | 1000 |
 
-**Níveis (pela pontuação acumulada):**
-
-`SEMENTE → BROTO (100) → ÁRVORE (300) → EXPERT (600)`
-
-## Organização do projeto
+## Estrutura do projeto
 
 | Pacote / pasta | Responsabilidade |
 |---|---|
-| `br.com.rockysoulup` | `Application` (menu/console) e as suítes `TesteSistema`, `TesteCrudCompleto` |
-| `model` | Entidades: `Usuario`, `Historico`, `Selo`, `UsuarioSelo`, `Acao`, `Recompensa` |
-| `service` | Regras de negócio: `GamificacaoService` e `RockySoulService` (orquestração com transações) |
-| `repository` | Camada de persistência (Repository): CRUD completo em JDBC para as 6 entidades |
-| `connection` | `ConnectionFactory` (conexão Oracle com credenciais no código) |
-| `database` | `SchemaSetup` (cria as tabelas) e script `database/schema_revisado_oracle.sql` |
-| `src/test` | Testes unitários JUnit 5 (sem banco) |
+| `br.com.rockysoulup` | `Application`, `TesteSistema` e `TesteCrudCompleto` |
+| `model` | Entidades do domínio: `Usuario`, `Historico`, `Selo`, `UsuarioSelo`, `Acao`, `Recompensa`, `Carta`, `UsuarioCarta` |
+| `service` | `GamificacaoService` e `RockySoulService` |
+| `repository` | CRUD via JDBC |
+| `connection` | `ConnectionFactory` |
+| `database` | `SchemaSetup` e scripts do banco |
+| `src/test` | Testes de unidade e integração |
 
 ## Testes
 
-- **JUnit 5** (`mvn test`): cálculo de nível, progressão e crédito de pontos/selos.
-- **`TesteSistema`** (método `main`): model, regras de negócio, CRUD e o cenário de
-  resgate de recompensa (saldo insuficiente → junta pontos → resgata → estoque zera) no Oracle.
-- **`TesteCrudCompleto`** (método `main`): 10 usuários simulando o uso real, ranking,
-  atualizações e exclusões em cascata, com limpeza total ao final.
+- JUnit 5, via `mvn test`
+- Validação de nível, pontuação e conquista de selos
+- Testes da lógica de raridade e catálogo de cartas
+- Execução de cenários no Oracle para validação de integração
 
 ## Conceitos aplicados
 
-- DDD/POO: encapsulamento, validações em construtores, getters e setters.
-- Camadas separadas: interface (console) → serviço (regras + transações) → Repository/JDBC → Oracle.
-- JDBC com `PreparedStatement`, `getGeneratedKeys` e transações com rollback.
-- Regras de negócio reais: e-mail único, conquista automática de selos, resgate atômico
-  (baixa de estoque + desconto de pontos + resgatados) e exclusões em cascata.
-- `ConnectionFactory` com usuário e senha inseridos no código (padrão FIAP/rubrica).
-- Build empacotado com Maven Shade Plugin (`run.bat`).
+- Orientação a objetos e encapsulamento
+- Separação por camadas: interface, serviço, repositório e banco
+- Uso de JDBC com `PreparedStatement` e transações
+- Regras de negócio reais: e-mail único, selo automático, atualização de pontos e exclusões em cascata
+- Modelo de cartas alinhado ao React, com raridade como eixo principal do drop
 
 ## Integrantes
 
