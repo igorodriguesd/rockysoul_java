@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Orquestra as operações do sistema sobre o Oracle, com transações. */
 public final class RockySoulService {
 
   private final GamificacaoService gamificacao = new GamificacaoService();
@@ -21,10 +20,6 @@ public final class RockySoulService {
   private final CartaRepository cartaRepository = new CartaRepository();
   private final UsuarioCartaRepository usuarioCartaRepository = new UsuarioCartaRepository();
 
-  /**
-   * Cadastra um novo usuário; rejeita e-mails já cadastrados (regra de e-mail
-   * único).
-   */
   public Usuario cadastrarUsuario(String nome, String email) {
     try {
       if (usuarioRepository.buscarPorEmail(email) != null) {
@@ -39,8 +34,6 @@ public final class RockySoulService {
     }
   }
 
-  // Garante o catálogo padrão (ações, recompensas e selos) quando o banco está
-  // vazio
   public void garantirCatalogo() {
     try {
       if (acaoRepository.listar().isEmpty()) {
@@ -123,7 +116,6 @@ public final class RockySoulService {
         new Carta("Agrofloresta", "Sistema integrado de cultivo com a floresta.", "Cultivo", "LENDARIA"));
   }
 
-  /** Registra uma ação, credita pontos e concede selos automaticamente. */
   public List<Selo> registrarAcao(Usuario usuario, String descricao, int pontos) {
     try {
       gamificacao.registrarAcao(usuario, pontos);
@@ -141,7 +133,6 @@ public final class RockySoulService {
     }
   }
 
-  /** Concede os selos cujo mínimo já foi atingido e que ainda não foram dados. */
   private List<Selo> concederSelos(Connection connection, Usuario usuario)
       throws SQLException {
     List<Selo> concedidos = new ArrayList<>();
@@ -155,7 +146,6 @@ public final class RockySoulService {
     return concedidos;
   }
 
-  /** Recalcula e concede selos de um usuário sem mudar pontuação. */
   public List<Selo> listarSelosConcedidos(Usuario usuario) {
     try {
       List<Selo> concedidos = new ArrayList<>();
@@ -254,10 +244,6 @@ public final class RockySoulService {
     return cartasDaRaridade.get(indice);
   }
 
-  /**
-   * Resgata uma recompensa: valida estoque/saldo, desconta pontos e baixa
-   * estoque.
-   */
   public Recompensa resgatarRecompensa(Usuario usuario, long idRecompensa) {
     try {
       Recompensa recompensa = recompensaRepository.buscarPorId(idRecompensa);
@@ -304,7 +290,6 @@ public final class RockySoulService {
     return recompensaRepository;
   }
 
-  /** Exclui um usuário com todos os dependentes, em uma única transação. */
   public void excluirUsuario(long id) throws SQLException {
     emTransacao(connection -> {
       historicoRepository.excluirPorUsuario(connection, id);
@@ -313,7 +298,6 @@ public final class RockySoulService {
     });
   }
 
-  /** Exclui um selo e seus vínculos com usuários, em uma única transação. */
   public void excluirSelo(long id) throws SQLException {
     emTransacao(connection -> {
       usuarioSeloRepository.excluirPorSelo(connection, id);
@@ -321,12 +305,10 @@ public final class RockySoulService {
     });
   }
 
-  /** Exclui uma ação do catálogo. */
   public void excluirAcao(long id) throws SQLException {
     emTransacao(connection -> acaoRepository.excluir(connection, id));
   }
 
-  /** Exclui uma recompensa do catálogo. */
   public void excluirRecompensa(long id) throws SQLException {
     emTransacao(connection -> recompensaRepository.excluir(connection, id));
   }

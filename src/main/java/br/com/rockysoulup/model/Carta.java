@@ -4,11 +4,6 @@ import java.text.Normalizer;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Cartinha colecionável com raridade e conjunto temático.
- * A lógica acompanha o conceito do frontend React: raridades mais raras têm
- * menor chance de aparecer e geram mais fragmentos ao repetirem.
- */
 public class Carta {
 
     private static final Map<String, Integer> FRAGMENTOS_POR_RARIDADE = Map.of(
