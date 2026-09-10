@@ -6,6 +6,8 @@ import br.com.rockysoulup.model.*;
 import br.com.rockysoulup.service.GamificacaoService;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 class GamificacaoServiceTest {
 
   private final GamificacaoService service = new GamificacaoService();
@@ -52,22 +54,54 @@ class GamificacaoServiceTest {
   }
 
   @Test
+  void deveCalcularFragmentosConformeRaridade() {
+    Carta comum = new Carta("Reciclagem", "Descrição", "Recursos", "COMUM");
+    Carta rara = new Carta("Energia Limpa", "Descrição", "Energia Limpa", "RARA");
+    Carta lendaria = new Carta("Estrela do Futuro", "Descrição", "Cultivo", "LENDARIA");
+
+    assertEquals(3, comum.getFragmentosPorRaridade());
+    assertEquals(10, rara.getFragmentosPorRaridade());
+    assertEquals(40, lendaria.getFragmentosPorRaridade());
+  }
+
+  @Test
+  void deveValidarRegrasDoModeloDeCarta() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Carta("", "Descrição", "Recursos", "COMUM"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Carta("Carta", "Descrição", "", "COMUM"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Carta("Carta", "Descrição", "Recursos", "RARIDADE_INVALIDA"));
+  }
+
+  @Test
+  void deveListarCatalogoPadraoDeCartas() {
+    List<Carta> catalogo = List.of(
+        new Carta("Água Viva", "Recursos hídricos", "Guardiões da Água", "INCOMUM"),
+        new Carta("Sol Forte", "Energia limpa", "Energia Limpa", "EPICA"),
+        new Carta("Muda do Amanhã", "Cultivo sustentável", "Cultivo", "LENDARIA"));
+
+    assertEquals(3, catalogo.size());
+    assertEquals("INCOMUM", catalogo.get(0).getRaridade());
+    assertEquals("LENDARIA", catalogo.get(2).getRaridade());
+  }
+
+  @Test
   void deveValidarRegrasDoModelo() {
     assertThrows(
-      IllegalArgumentException.class,
-      () -> new Usuario("", "ana@email.com")
-    );
+        IllegalArgumentException.class,
+        () -> new Usuario("", "ana@email.com"));
     assertThrows(
-      IllegalArgumentException.class,
-      () -> new Usuario("Ana", "email-invalido")
-    );
+        IllegalArgumentException.class,
+        () -> new Usuario("Ana", "email-invalido"));
     assertThrows(
-      IllegalArgumentException.class,
-      () -> new Historico(1L, "Ação", 200)
-    );
+        IllegalArgumentException.class,
+        () -> new Historico(1L, "Ação", 200));
     assertThrows(
-      IllegalArgumentException.class,
-      () -> new Selo("S", "D", -1)
-    );
+        IllegalArgumentException.class,
+        () -> new Selo("S", "D", -1));
   }
 }

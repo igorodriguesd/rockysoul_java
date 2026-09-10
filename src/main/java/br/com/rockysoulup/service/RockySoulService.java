@@ -18,8 +18,13 @@ public final class RockySoulService {
   private final UsuarioSeloRepository usuarioSeloRepository = new UsuarioSeloRepository();
   private final AcaoRepository acaoRepository = new AcaoRepository();
   private final RecompensaRepository recompensaRepository = new RecompensaRepository();
+  private final CartaRepository cartaRepository = new CartaRepository();
+  private final UsuarioCartaRepository usuarioCartaRepository = new UsuarioCartaRepository();
 
-  /** Cadastra um novo usuário; rejeita e-mails já cadastrados (regra de e-mail único). */
+  /**
+   * Cadastra um novo usuário; rejeita e-mails já cadastrados (regra de e-mail
+   * único).
+   */
   public Usuario cadastrarUsuario(String nome, String email) {
     try {
       if (usuarioRepository.buscarPorEmail(email) != null) {
@@ -34,7 +39,8 @@ public final class RockySoulService {
     }
   }
 
-  // Garante o catálogo padrão (ações, recompensas e selos) quando o banco está vazio
+  // Garante o catálogo padrão (ações, recompensas e selos) quando o banco está
+  // vazio
   public void garantirCatalogo() {
     try {
       if (acaoRepository.listar().isEmpty()) {
@@ -50,14 +56,22 @@ public final class RockySoulService {
       }
       if (recompensaRepository.listar().isEmpty()) {
         emTransacao(connection -> {
-          recompensaRepository.inserir(connection, new Recompensa("Desconto Energia", "10% de desconto na conta de energia", 200, 50, "Energia", "Novo"));
-          recompensaRepository.inserir(connection, new Recompensa("Passe de Transporte", "Um passe livre de transporte público", 350, 15, "Transporte", ""));
-          recompensaRepository.inserir(connection, new Recompensa("Muda de Árvore", "Receba uma muda para plantar", 500, 20, "Natureza", "Top 1"));
-          recompensaRepository.inserir(connection, new Recompensa("Cupom Reciclagem", "Cupom de R$15 em lojas parceiras", 150, 30, "Cupons", ""));
-          recompensaRepository.inserir(connection, new Recompensa("Kit Sustentável", "Kit com canudo reutilizável e sacola ecológica", 250, 20, "Natureza", ""));
-          recompensaRepository.inserir(connection, new Recompensa("Desconto Água", "5% de desconto na conta de água", 180, 30, "Energia", ""));
-          recompensaRepository.inserir(connection, new Recompensa("Cupom Bicicleta", "Cupom de R$20 em bicicletarias", 400, 10, "Transporte", ""));
-          recompensaRepository.inserir(connection, new Recompensa("Adoção de Árvore", "Adote uma árvore real por 3 meses", 800, 2, "Natureza", "Top 1"));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Desconto Energia", "10% de desconto na conta de energia", 200, 50, "Energia", "Novo"));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Passe de Transporte", "Um passe livre de transporte público", 350, 15, "Transporte", ""));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Muda de Árvore", "Receba uma muda para plantar", 500, 20, "Natureza", "Top 1"));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Cupom Reciclagem", "Cupom de R$15 em lojas parceiras", 150, 30, "Cupons", ""));
+          recompensaRepository.inserir(connection, new Recompensa("Kit Sustentável",
+              "Kit com canudo reutilizável e sacola ecológica", 250, 20, "Natureza", ""));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Desconto Água", "5% de desconto na conta de água", 180, 30, "Energia", ""));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Cupom Bicicleta", "Cupom de R$20 em bicicletarias", 400, 10, "Transporte", ""));
+          recompensaRepository.inserir(connection,
+              new Recompensa("Adoção de Árvore", "Adote uma árvore real por 3 meses", 800, 2, "Natureza", "Top 1"));
         });
       }
       if (seloRepository.listar().isEmpty()) {
@@ -66,6 +80,20 @@ public final class RockySoulService {
           seloRepository.inserir(connection, new Selo("Broto", "Crescendo em sustentabilidade", 300));
           seloRepository.inserir(connection, new Selo("Árvore", "Impacto real no planeta", 600));
           seloRepository.inserir(connection, new Selo("Expert", "Lenda da sustentabilidade", 1000));
+        });
+      }
+      if (cartaRepository.listar().isEmpty()) {
+        emTransacao(connection -> {
+          cartaRepository.inserir(connection,
+              new Carta("Água Viva", "Recurso vital para a vida", "Guardiões da Água", "INCOMUM"));
+          cartaRepository.inserir(connection,
+              new Carta("Sol Forte", "Energia limpa em movimento", "Energia Limpa", "EPICA"));
+          cartaRepository.inserir(connection,
+              new Carta("Muda do Amanhã", "Crescimento verde e sustentável", "Cultivo", "LENDARIA"));
+          cartaRepository.inserir(connection,
+              new Carta("Bicicleta do Futuro", "Mobilidade leve e inteligente", "Cidade Verde", "RARA"));
+          cartaRepository.inserir(connection,
+              new Carta("Pilha de Reciclagem", "Pequenos hábitos geram grandes impactos", "Recursos", "COMUM"));
         });
       }
     } catch (SQLException e) {
@@ -80,9 +108,8 @@ public final class RockySoulService {
       List<Selo> concedidos = new ArrayList<>();
       emTransacao(connection -> {
         historicoRepository.inserir(
-          connection,
-          new Historico(usuario.getId(), descricao, pontos)
-        );
+            connection,
+            new Historico(usuario.getId(), descricao, pontos));
         usuarioRepository.atualizar(connection, usuario);
         concedidos.addAll(concederSelos(connection, usuario));
       });
@@ -94,7 +121,7 @@ public final class RockySoulService {
 
   /** Concede os selos cujo mínimo já foi atingido e que ainda não foram dados. */
   private List<Selo> concederSelos(Connection connection, Usuario usuario)
-    throws SQLException {
+      throws SQLException {
     List<Selo> concedidos = new ArrayList<>();
     for (Selo selo : seloRepository.listar()) {
       boolean jaTem = usuarioSeloRepository.jaConquistado(connection, usuario.getId(), selo.getId());
@@ -145,7 +172,56 @@ public final class RockySoulService {
     }
   }
 
-  /** Resgata uma recompensa: valida estoque/saldo, desconta pontos e baixa estoque. */
+  public List<Carta> listarCartas() {
+    try {
+      return cartaRepository.listar();
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao listar cartas: " + e.getMessage(), e);
+    }
+  }
+
+  public List<Carta> listarCartasDoUsuario(Usuario usuario) {
+    try {
+      List<Carta> cartas = new ArrayList<>();
+      for (UsuarioCarta usuarioCarta : usuarioCartaRepository.listarPorUsuario(usuario.getId())) {
+        Carta carta = cartaRepository.buscarPorId(usuarioCarta.getCartaId());
+        if (carta != null) {
+          cartas.add(carta);
+        }
+      }
+      return cartas;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao listar cartas do usuário: " + e.getMessage(), e);
+    }
+  }
+
+  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta, boolean brilhante) {
+    try {
+      Carta carta = cartaRepository.buscarPorId(idCarta);
+      if (carta == null) {
+        throw new IllegalStateException("Erro: carta não encontrada!");
+      }
+      emTransacao(connection -> {
+        if (usuarioCartaRepository.jaPossui(connection, usuario.getId(), carta.getId())) {
+          UsuarioCarta existente = new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante);
+          usuarioCartaRepository.atualizarQuantidade(connection, usuario.getId(), carta.getId(), 1);
+          if (existente.isBrilhante()) {
+            // mantém a persistência compatível com o modelo da coleção
+          }
+        } else {
+          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante));
+        }
+      });
+      return carta;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao adicionar carta: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Resgata uma recompensa: valida estoque/saldo, desconta pontos e baixa
+   * estoque.
+   */
   public Recompensa resgatarRecompensa(Usuario usuario, long idRecompensa) {
     try {
       Recompensa recompensa = recompensaRepository.buscarPorId(idRecompensa);
@@ -157,12 +233,11 @@ public final class RockySoulService {
       }
       if (usuario.getPontos() < recompensa.getCusto()) {
         throw new IllegalStateException(
-          "Erro: pontos insuficientes! Você precisa de " +
-          recompensa.getCusto() +
-          ", mas tem apenas " +
-          usuario.getPontos() +
-          "."
-        );
+            "Erro: pontos insuficientes! Você precisa de " +
+                recompensa.getCusto() +
+                ", mas tem apenas " +
+                usuario.getPontos() +
+                ".");
       }
       emTransacao(connection -> {
         recompensa.setEstoque(recompensa.getEstoque() - 1);

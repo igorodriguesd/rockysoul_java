@@ -2,8 +2,9 @@
 
 Aplicação de **console** em **Java 17 + Maven** que gamifica ações sustentáveis.
 O usuário se autentica, registra ações sustentáveis, acumula **Pontos ECOA**, sobe
-de nível, conquista **selos** automaticamente, resgata **recompensas reais** na
-vitrine (com estoque) e acompanha o **ranking**.
+de nível, conquista **selos** automaticamente, coleta **cartas colecionáveis**
+com raridades e fragmentos, resgata **recompensas reais** na vitrine (com estoque)
+e acompanha o **ranking**.
 
 Persistência em **Oracle (FIAP)** via JDBC, com modelo relacional:
 `USUARIO`, `ACAO`, `RECOMPENSA`, `HISTORICO`, `SELO` e `USUARIO_SELO`.
