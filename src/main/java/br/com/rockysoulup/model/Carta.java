@@ -114,17 +114,16 @@ public class Carta {
         if (valorSorteado < 1 || valorSorteado > 100) {
             throw new IllegalArgumentException("O valor sorteado deve estar entre 1 e 100");
         }
-        if (valorSorteado <= CHANCE_DE_DROP.get("COMUM")) {
+        if (valorSorteado <= 75) {
             return "COMUM";
         }
-        if (valorSorteado <= CHANCE_DE_DROP.get("COMUM") + CHANCE_DE_DROP.get("INCOMUM")) {
+        if (valorSorteado <= 90) {
             return "INCOMUM";
         }
-        if (valorSorteado <= CHANCE_DE_DROP.get("COMUM") + CHANCE_DE_DROP.get("INCOMUM") + CHANCE_DE_DROP.get("RARA")) {
+        if (valorSorteado <= 96) {
             return "RARA";
         }
-        if (valorSorteado <= CHANCE_DE_DROP.get("COMUM") + CHANCE_DE_DROP.get("INCOMUM") + CHANCE_DE_DROP.get("RARA")
-                + CHANCE_DE_DROP.get("EPICA")) {
+        if (valorSorteado <= 99) {
             return "EPICA";
         }
         return "LENDARIA";
