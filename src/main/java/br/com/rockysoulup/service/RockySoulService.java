@@ -195,7 +195,7 @@ public final class RockySoulService {
     }
   }
 
-  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta, boolean brilhante) {
+  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta) {
     try {
       Carta carta = cartaRepository.buscarPorId(idCarta);
       if (carta == null) {
@@ -203,13 +203,9 @@ public final class RockySoulService {
       }
       emTransacao(connection -> {
         if (usuarioCartaRepository.jaPossui(connection, usuario.getId(), carta.getId())) {
-          UsuarioCarta existente = new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante);
           usuarioCartaRepository.atualizarQuantidade(connection, usuario.getId(), carta.getId(), 1);
-          if (existente.isBrilhante()) {
-            // mantém a persistência compatível com o modelo da coleção
-          }
         } else {
-          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1, brilhante));
+          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1));
         }
       });
       return carta;

@@ -6,20 +6,18 @@ public class UsuarioCarta {
     private Long usuarioId;
     private Long cartaId;
     private int quantidade;
-    private boolean brilhante;
 
     public UsuarioCarta() {
     }
 
     public UsuarioCarta(Long usuarioId, Long cartaId) {
-        this(usuarioId, cartaId, 1, false);
+        this(usuarioId, cartaId, 1);
     }
 
-    public UsuarioCarta(Long usuarioId, Long cartaId, int quantidade, boolean brilhante) {
+    public UsuarioCarta(Long usuarioId, Long cartaId, int quantidade) {
         setUsuarioId(usuarioId);
         setCartaId(cartaId);
         setQuantidade(quantidade);
-        setBrilhante(brilhante);
     }
 
     public Long getUsuarioId() {
@@ -53,13 +51,5 @@ public class UsuarioCarta {
             throw new IllegalArgumentException(
                     "Quantidade da carta deve ser maior que zero");
         this.quantidade = quantidade;
-    }
-
-    public boolean isBrilhante() {
-        return brilhante;
-    }
-
-    public void setBrilhante(boolean brilhante) {
-        this.brilhante = brilhante;
     }
 }
