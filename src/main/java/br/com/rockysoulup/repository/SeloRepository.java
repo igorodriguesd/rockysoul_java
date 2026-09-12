@@ -8,7 +8,6 @@ import java.util.List;
 
 public final class SeloRepository {
 
-  // grava um novo selo de conquista
   public void inserir(Selo selo) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       inserir(con, selo);
@@ -29,7 +28,6 @@ public final class SeloRepository {
     }
   }
 
-  // lista os selos que existem no sistema
   public List<Selo> listar() throws SQLException {
     String sql = "SELECT ID_SELO, NM_SELO, DS_SELO, NR_PONTOS_MIN FROM SELO ORDER BY NR_PONTOS_MIN, ID_SELO";
     List<Selo> lista = new ArrayList<>();
@@ -43,7 +41,6 @@ public final class SeloRepository {
     return lista;
   }
 
-  // procura um selo pelo id
   public Selo buscarPorId(long id) throws SQLException {
     String sql = "SELECT ID_SELO, NM_SELO, DS_SELO, NR_PONTOS_MIN FROM SELO WHERE ID_SELO = ?";
     try (
@@ -57,7 +54,6 @@ public final class SeloRepository {
     }
   }
 
-  // altera os dados de um selo
   public void atualizar(Selo selo) throws SQLException {
     String sql = "UPDATE SELO SET NM_SELO = ?, DS_SELO = ?, NR_PONTOS_MIN = ? WHERE ID_SELO = ?";
     try (
@@ -72,7 +68,6 @@ public final class SeloRepository {
     }
   }
 
-  // apaga um selo do sistema
   public void excluir(long id) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       excluir(con, id);

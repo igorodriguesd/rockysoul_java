@@ -1,9 +1,12 @@
 package br.com.rockysoulup.model;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /** Registro de uma ação sustentável executada por um usuário. */
 public class Historico {
+
+  private static final int MAX_DESCRICAO = 150;
 
   private Long id;
   private Long usuarioId;
@@ -50,7 +53,11 @@ public class Historico {
     if (descricao == null || descricao.isBlank()) throw new IllegalArgumentException(
       "Descrição da ação é obrigatória"
     );
-    this.descricao = descricao.trim();
+    String limpo = descricao.trim();
+    if (limpo.length() > MAX_DESCRICAO) throw new IllegalArgumentException(
+      "A descrição deve ter no máximo " + MAX_DESCRICAO + " caracteres"
+    );
+    this.descricao = limpo;
   }
 
   public int getPontos() {
@@ -58,8 +65,8 @@ public class Historico {
   }
 
   public void setPontos(int pontos) {
-    if (pontos < 0 || pontos > 100) throw new IllegalArgumentException(
-      "A pontuação da ação deve estar entre 0 e 100"
+    if (pontos <= 0 || pontos > 100) throw new IllegalArgumentException(
+      "A pontuação da ação deve estar entre 1 e 100"
     );
     this.pontos = pontos;
   }
@@ -70,5 +77,23 @@ public class Historico {
 
   public void setDataAcao(LocalDateTime dataAcao) {
     this.dataAcao = dataAcao;
+  }
+
+  @Override
+  public String toString() {
+    return "Historico{id=" + id + ", usuarioId=" + usuarioId + ", descricao='" + descricao + "', pontos=" + pontos + "}";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    Historico other = (Historico) obj;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

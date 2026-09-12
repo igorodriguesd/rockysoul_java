@@ -8,7 +8,6 @@ import java.util.List;
 
 public final class AcaoRepository {
 
-  // grava uma nova ação no catálogo
   public void inserir(Acao acao) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       inserir(con, acao);
@@ -28,7 +27,6 @@ public final class AcaoRepository {
     }
   }
 
-  // lista as ações disponíveis no catálogo
   public List<Acao> listar() throws SQLException {
     String sql = "SELECT ID_ACAO, NM_ACAO, NR_PONTOS FROM ACAO ORDER BY NR_PONTOS, NM_ACAO";
     List<Acao> lista = new ArrayList<>();
@@ -42,7 +40,6 @@ public final class AcaoRepository {
     return lista;
   }
 
-  // procura uma ação pelo id
   public Acao buscarPorId(long id) throws SQLException {
     String sql = "SELECT ID_ACAO, NM_ACAO, NR_PONTOS FROM ACAO WHERE ID_ACAO = ?";
     try (
@@ -56,7 +53,7 @@ public final class AcaoRepository {
     }
   }
 
-  // procura uma ação pelo nome (evita cadastrar repetida)
+  // evita cadastrar ação repetida (consulta por nome)
   public Acao buscarPorNome(String nome) throws SQLException {
     String sql = "SELECT ID_ACAO, NM_ACAO, NR_PONTOS FROM ACAO WHERE LOWER(NM_ACAO) = ?";
     try (
@@ -70,7 +67,6 @@ public final class AcaoRepository {
     }
   }
 
-  // altera o nome e os pontos de uma ação
   public void atualizar(Acao acao) throws SQLException {
     String sql = "UPDATE ACAO SET NM_ACAO = ?, NR_PONTOS = ? WHERE ID_ACAO = ?";
     try (
@@ -84,7 +80,12 @@ public final class AcaoRepository {
     }
   }
 
-  // apaga uma ação do catálogo
+  public void excluir(long id) throws SQLException {
+    try (Connection con = ConnectionFactory.abrir()) {
+      excluir(con, id);
+    }
+  }
+
   public void excluir(Connection con, long id) throws SQLException {
     String sql = "DELETE FROM ACAO WHERE ID_ACAO = ?";
     try (PreparedStatement pstmt = con.prepareStatement(sql)) {

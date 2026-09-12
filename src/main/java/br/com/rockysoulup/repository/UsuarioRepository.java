@@ -9,7 +9,6 @@ import java.util.Objects;
 
 public final class UsuarioRepository {
 
-  // grava um novo usuário
   public void inserir(Usuario usuario) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       inserir(con, usuario);
@@ -33,7 +32,7 @@ public final class UsuarioRepository {
     }
   }
 
-  // lista os usuários do ranking (mais pontos primeiro)
+  // ranking: mais pontos primeiro
   public List<Usuario> listar() throws SQLException {
     String sql =
       "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO ORDER BY NR_PONTOS DESC, NM_USUARIO";
@@ -48,7 +47,6 @@ public final class UsuarioRepository {
     return usuarios;
   }
 
-  // procura um usuário pelo id
   public Usuario buscarPorId(long id) throws SQLException {
     String sql =
       "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO WHERE ID_USUARIO = ?";
@@ -63,7 +61,7 @@ public final class UsuarioRepository {
     }
   }
 
-  // procura um usuário pelo e-mail (regra do e-mail único)
+  // regra do e-mail único
   public Usuario buscarPorEmail(String email) throws SQLException {
     String sql =
       "SELECT ID_USUARIO, NM_USUARIO, DS_EMAIL, NR_PONTOS, NR_PONTOS_RESGATADOS FROM USUARIO WHERE LOWER(DS_EMAIL) = ?";
@@ -78,7 +76,6 @@ public final class UsuarioRepository {
     }
   }
 
-  // altera os dados do usuário
   public void atualizar(Usuario usuario) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       atualizar(con, usuario);
@@ -99,7 +96,6 @@ public final class UsuarioRepository {
     }
   }
 
-  // apaga um usuário do banco
   public void excluir(long id) throws SQLException {
     try (Connection con = ConnectionFactory.abrir()) {
       excluir(con, id);
