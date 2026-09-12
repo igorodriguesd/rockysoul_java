@@ -7,6 +7,8 @@ import br.com.rockysoulup.service.RockySoulService;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 /**
  * Classe de teste: método main que instancia as classes modelo, valida as
@@ -18,7 +20,17 @@ public class TesteSistema {
 
   private static final List<Runnable> LIMPEZA = new ArrayList<>();
 
+  @Test
+  @Tag("integration")
+  void deveExecutarSuiteCompleta() throws Exception {
+    executarSuite();
+  }
+
   public static void main(String[] args) throws Exception {
+    executarSuite();
+  }
+
+  private static void executarSuite() throws Exception {
     System.out.println("========== TESTE DO SISTEMA SOULUP (DDD / JDBC / Oracle) ==========\n");
 
     testeModelo();

@@ -5,6 +5,8 @@ import br.com.rockysoulup.repository.*;
 import br.com.rockysoulup.service.RockySoulService;
 import java.sql.SQLException;
 import java.util.*;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 /**
  * Suite de testes do CRUD completo: cadastra 10 usuários com pontos, níveis
@@ -13,7 +15,9 @@ import java.util.*;
  */
 public final class TesteCrudCompleto {
 
-  public static void main(String[] args) throws Exception {
+  @Test
+  @Tag("integration")
+  void deveExecutarCrudCompleto() throws Exception {
     String suf = String.valueOf(System.currentTimeMillis());
     RockySoulService service = new RockySoulService();
     UsuarioRepository usuarioRepository = new UsuarioRepository();
