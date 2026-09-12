@@ -1,11 +1,12 @@
 package br.com.rockysoulup;
 
 import br.com.rockysoulup.connection.ConnectionFactory;
+import br.com.rockysoulup.exception.RegistroDuplicadoException;
+import br.com.rockysoulup.exception.SaldoInsuficienteException;
 import br.com.rockysoulup.model.*;
 import br.com.rockysoulup.service.RockySoulService;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,13 @@ public class Application {
   private Usuario usuarioLogado;
 
   public static void main(String[] args) {
-    new Application().iniciar();
+    try {
+      new Application().iniciar();
+    } catch (RuntimeException e) {
+      System.err.println("\nErro inesperado no sistema: " + e.getMessage());
+      System.err.println("Consulte o log para mais detalhes.");
+      System.exit(1);
+    }
   }
 
   private void iniciar() {
@@ -62,8 +69,7 @@ public class Application {
       System.out.println("1 - Registrar ação sustentável");
       System.out.println("2 - Ver meu nível e estatísticas");
       System.out.println("3 - Resgatar recompensas (benefícios reais)");
-      System.out.println("4 - Sugestão do avatar");
-      System.out.println("5 - Ver ranking da semana");
+      System.out.println("4 - Minha coleção de cartas");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) {
@@ -95,6 +101,8 @@ public class Application {
         usuarioLogado = service.cadastrarUsuario(nome, email);
         System.out.println("Cadastro criado com sucesso!");
         return;
+      } catch (RegistroDuplicadoException e) {
+        System.out.println("Erro: " + e.getMessage());
       } catch (IllegalArgumentException | IllegalStateException e) {
         System.out.println("Erro: " + e.getMessage());
       } catch (SQLException e) {
@@ -108,9 +116,8 @@ public class Application {
       case 1 -> registrarAcao();
       case 2 -> verNivelEstatisticas();
       case 3 -> resgatarRecompensas();
-      case 4 -> sugestaoAvatar();
-      case 5 -> verRanking();
-      default -> System.out.println("Opção inválida! Digite de 1 a 5.");
+      case 4 -> verMinhaColecao();
+      default -> System.out.println("Opção inválida! Digite de 1 a 4.");
     }
   }
 
@@ -130,9 +137,100 @@ public class Application {
       return;
     }
     Acao acao = acoes.get(posicao - 1);
-    List<Selo> selos = service.registrarAcao(usuarioLogado, acao.getNome(), acao.getPontos());
+    RockySoulService.ResultadoAcao resultado = service.registrarAcao(usuarioLogado, acao.getNome(), acao.getPontos());
     System.out.printf("Boa! Você ganhou +%d Pontos ECOA com: %s!%n", acao.getPontos(), acao.getNome());
-    anunciarSelosNovos(selos);
+    anunciarSelosNovos(resultado.selosConquistados());
+    resultado.cartaDrop().ifPresent(this::anunciarSorteio);
+  }
+
+  private void anunciarSorteio(RockySoulService.ResultadoSorteio sorteio) {
+    if (!sorteio.caiu()) {
+      System.out.println("Você tentou coletar uma carta ecológica, mas desta vez não caiu nenhuma. Tente de novo!");
+      return;
+    }
+    Carta carta = sorteio.carta();
+    if (sorteio.nova()) {
+      System.out.printf(
+        "Nova carta coletada: %s (%s - %s)!%n",
+        carta.getNome(), carta.getConjunto(), carta.getRaridade());
+    } else {
+      System.out.printf(
+        "Carta repetida: %s (%s)! Você ganhou +%d fragmento(s) de raridade %s.%n",
+        carta.getNome(), carta.getRaridade(), sorteio.fragmentosGanhos(), carta.getRaridade());
+    }
+  }
+
+  private void verMinhaColecao() {
+    List<Carta> minhas = service.listarCartasDoUsuario(usuarioLogado);
+    Map<String, Integer> porSet = new LinkedHashMap<>();
+    for (Carta c : minhas) porSet.merge(c.getConjunto(), 1, Integer::sum);
+
+    System.out.println("\n=== MINHA COLEÇÃO DE CARTAS ===");
+    if (minhas.isEmpty()) {
+      System.out.println("Você ainda não tem cartas. Realize ações sustentáveis para ganhar cartas!");
+    } else {
+      System.out.printf("Total: %d de 20 cartas%n", minhas.size());
+      for (Map.Entry<String, Integer> e : porSet.entrySet()) {
+        System.out.printf("  • %s: %d/%d%n", e.getKey(), e.getValue(), 4);
+      }
+    }
+
+    Map<String, Integer> fragmentos = service.fragmentosDoUsuario(usuarioLogado);
+    System.out.println("\nFragmentos (para fabricar cartas):");
+    boolean temFragmentos = false;
+    for (String raridade : List.of("COMUM", "INCOMUM", "RARA", "EPICA", "LENDARIA")) {
+      int quantidade = fragmentos.getOrDefault(raridade, 0);
+      if (quantidade > 0) {
+        System.out.printf("  • %s: %d%n", raridade, quantidade);
+        temFragmentos = true;
+      }
+    }
+    if (!temFragmentos) System.out.println("  Nenhum fragmento ainda. Cartas repetidas geram fragmentos.");
+
+    fabricarCartaPorFragmentos();
+  }
+
+  private void fabricarCartaPorFragmentos() {
+    System.out.println("\nDeseja fabricar uma carta com fragmentos?");
+    System.out.println("1 - Sim");
+    System.out.println("0 - Voltar");
+    int escolha = lerInteiro("Escolha: ");
+    if (escolha != 1) {
+      System.out.println("Voltando...");
+      return;
+    }
+    List<Carta> catalogadas = service.listarCartas();
+    List<Carta> minhas = service.listarCartasDoUsuario(usuarioLogado);
+    List<Carta> fabricaveis = new ArrayList<>();
+    for (Carta c : catalogadas) {
+      if (!minhas.stream().anyMatch(m -> m.getId().equals(c.getId()))) {
+        fabricaveis.add(c);
+      }
+    }
+    if (fabricaveis.isEmpty()) {
+      System.out.println("Você já tem todas as cartas do catálogo!");
+      return;
+    }
+    System.out.println("\nCartas que você ainda não possui:");
+    for (int i = 0; i < fabricaveis.size(); i++) {
+      Carta c = fabricaveis.get(i);
+      System.out.printf(
+        "%d - %s (%s - %s) | custo: %d fragmentos %s%n",
+        i + 1, c.getNome(), c.getConjunto(), c.getRaridade(),
+        RockySoulService.custoFabricacao(c.getRaridade()), c.getRaridade());
+    }
+    int escolhaCarta = lerInteiro("\nQual carta fabricar (0 cancela): ");
+    if (escolhaCarta <= 0 || escolhaCarta > fabricaveis.size()) {
+      System.out.println("Fabricação cancelada.");
+      return;
+    }
+    try {
+      Carta carta = service.fabricarCarta(usuarioLogado, fabricaveis.get(escolhaCarta - 1).getId());
+      System.out.printf("Carta fabricada: %s (%s - %s)!%n",
+        carta.getNome(), carta.getConjunto(), carta.getRaridade());
+    } catch (SaldoInsuficienteException | IllegalStateException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
   }
 
   private void verNivelEstatisticas() {
@@ -199,50 +297,14 @@ public class Application {
       System.out.println("Erro: opção inválida!");
       return;
     }
-    Recompensa recompensa = service.resgatarRecompensa(usuarioLogado, recompensas.get(escolha - 1).getId());
-    System.out.println("\nSucesso! Você resgatou: " + recompensa.getTitulo() + "!");
-    System.out.printf("Foram utilizados %d Pontos ECOA.%n", recompensa.getCusto());
-  }
-
-  private void sugestaoAvatar() {
-    int pontos = usuarioLogado.getPontos();
-    String mensagem;
-    if (pontos < 100) {
-      mensagem = "Avatar: Registre ações diárias para fazermos nossa semente brotar!";
-    } else if (pontos < 300) {
-      mensagem = "Avatar: Crescendo firme! Junte pontos para resgatar benefícios reais!";
-    } else if (usuarioLogado.proximoNivel() == null) {
-      mensagem = "Avatar: Você é Expert! O planeta agradece, lenda!";
-    } else {
-      mensagem =
-        "Avatar: Parabéns pelo nível " +
-        usuarioLogado.getNivel() +
-        "! Faltam só " +
-        usuarioLogado.pontosParaProximoNivel() +
-        " pontos para virar " +
-        usuarioLogado.proximoNivel() +
-        ".";
+    Recompensa recompensa;
+    try {
+      recompensa = service.resgatarRecompensa(usuarioLogado, recompensas.get(escolha - 1).getId());
+      System.out.println("\nSucesso! Você resgatou: " + recompensa.getTitulo() + "!");
+      System.out.printf("Foram utilizados %d Pontos ECOA.%n", recompensa.getCusto());
+    } catch (SaldoInsuficienteException e) {
+      System.out.println("Erro: " + e.getMessage());
     }
-    System.out.println("\n" + mensagem);
-  }
-
-  private void verRanking() {
-    List<Usuario> usuarios = listarUsuarios();
-    usuarios.sort(Comparator.comparingInt(Usuario::getPontos).reversed());
-    System.out.println("\n==============================");
-    System.out.println("      RANKING DA SEMANA       ");
-    System.out.println("==============================");
-    int posicao = 1;
-    for (Usuario u : usuarios) {
-      boolean souEu = u.getId().equals(usuarioLogado.getId());
-      if (souEu) {
-        System.out.printf("-> %dº %-15s | %d pts * (Sua posição)%n", posicao, u.getNome(), u.getPontos());
-      } else {
-        System.out.printf("   %dº %-15s | %d pts%n", posicao, u.getNome(), u.getPontos());
-      }
-      posicao++;
-    }
-    System.out.println("==============================");
   }
 
   /* ─────────────── ÁREA DE CADASTRO (CRUD) ─────────────── */
@@ -253,6 +315,7 @@ public class Application {
       System.out.println("1 - Gerenciar usuários");
       System.out.println("2 - Gerenciar ações");
       System.out.println("3 - Gerenciar recompensas");
+      System.out.println("4 - Gerenciar cartas");
       System.out.println("0 - Voltar");
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
@@ -260,6 +323,7 @@ public class Application {
         case 1 -> menuUsuarios();
         case 2 -> menuAcoes();
         case 3 -> menuRecompensas();
+        case 4 -> menuCartas();
         default -> System.out.println("Opção inválida.");
       }
     }
@@ -276,10 +340,10 @@ public class Application {
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
-        case 1 -> cadastrarUsuario();
-        case 2 -> atualizarUsuario();
-        case 3 -> excluirUsuario();
-        case 4 -> imprimirUsuarios();
+        case 1 -> executarSafely(this::cadastrarUsuario);
+        case 2 -> executarSafely(this::atualizarUsuario);
+        case 3 -> executarSafely(this::excluirUsuario);
+        case 4 -> executarSafely(this::imprimirUsuarios);
         default -> System.out.println("Opção inválida.");
       }
     }
@@ -292,6 +356,8 @@ public class Application {
         lerTexto("E-mail: ")
       );
       System.out.println("Usuário '" + novo.getNome() + "' cadastrado com sucesso!");
+    } catch (RegistroDuplicadoException e) {
+      System.out.println("Erro: " + e.getMessage());
     } catch (IllegalArgumentException | IllegalStateException e) {
       System.out.println("Erro: " + e.getMessage());
     }
@@ -299,26 +365,33 @@ public class Application {
 
   private void atualizarUsuario() {
     try {
-      Usuario usuario = service.usuarios().buscarPorId(lerInteiro("ID do usuário: "));
+      Usuario usuario = service.usuarios().buscarPorId(lerId("ID do usuário: "));
       if (usuario == null) {
         System.out.println("Erro: usuário não encontrado!");
         return;
       }
-      usuario.setNome(lerTextoOuPadrao("Novo nome [" + usuario.getNome() + "]: ", usuario.getNome()));
-      usuario.setEmail(lerTextoOuPadrao("Novo e-mail [" + usuario.getEmail() + "]: ", usuario.getEmail()));
+      String novoNome = lerTextoOuPadrao("Novo nome [" + usuario.getNome() + "]: ", usuario.getNome()).trim();
+      String novoEmail = lerTextoOuPadrao("Novo e-mail [" + usuario.getEmail() + "]: ", usuario.getEmail()).trim();
+      try {
+        usuario.setNome(novoNome);
+        usuario.setEmail(novoEmail);
+      } catch (IllegalArgumentException e) {
+        System.out.println("Erro: " + e.getMessage());
+        return;
+      }
       service.usuarios().atualizar(usuario);
       System.out.println("Usuário alterado com sucesso!");
-    } catch (SQLException e) {
+    } catch (IllegalArgumentException | IllegalStateException | SQLException e) {
       System.out.println("Erro: " + e.getMessage());
     }
   }
 
   private void excluirUsuario() {
-    long id = lerInteiro("ID do usuário: ");
+    long id = lerId("ID do usuário: ");
     try {
       service.excluirUsuario(id);
       System.out.println("Usuário excluído com sucesso!");
-    } catch (SQLException e) {
+    } catch (IllegalStateException | SQLException e) {
       System.out.println("Erro: " + e.getMessage());
     }
   }
@@ -349,11 +422,11 @@ public class Application {
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
-        case 1 -> incluirAcao();
-        case 2 -> alterarAcao();
-        case 3 -> excluirAcao();
-        case 4 -> listarAcoesCrud();
-        case 5 -> filtrarAcoes();
+        case 1 -> executarSafely(this::incluirAcao);
+        case 2 -> executarSafely(this::alterarAcao);
+        case 3 -> executarSafely(this::excluirAcao);
+        case 4 -> executarSafely(this::listarAcoesCrud);
+        case 5 -> executarSafely(this::filtrarAcoes);
         default -> System.out.println("Opção inválida.");
       }
     }
@@ -378,7 +451,7 @@ public class Application {
       Acao acao = new Acao(nome, pontos);
       service.acoes().inserir(acao);
       System.out.println("Ação '" + acao.getNome() + "' cadastrada com sucesso!");
-    } catch (SQLException e) {
+    } catch (IllegalArgumentException | IllegalStateException | SQLException e) {
       System.out.println("Erro: " + e.getMessage());
     }
   }
@@ -408,7 +481,7 @@ public class Application {
       acao.setPontos(novosPontos);
       service.acoes().atualizar(acao);
       System.out.println("Ação alterada com sucesso!");
-    } catch (SQLException e) {
+    } catch (IllegalArgumentException | IllegalStateException | SQLException e) {
       System.out.println("Erro: " + e.getMessage());
     }
   }
@@ -480,10 +553,10 @@ public class Application {
       int opcao = lerInteiro("Escolha: ");
       if (opcao == 0) return;
       switch (opcao) {
-        case 1 -> incluirRecompensa();
-        case 2 -> alterarRecompensa();
-        case 3 -> excluirRecompensa();
-        case 4 -> listarRecompensasCrud();
+        case 1 -> executarSafely(this::incluirRecompensa);
+        case 2 -> executarSafely(this::alterarRecompensa);
+        case 3 -> executarSafely(this::excluirRecompensa);
+        case 4 -> executarSafely(this::listarRecompensasCrud);
         default -> System.out.println("Opção inválida.");
       }
     }
@@ -590,7 +663,143 @@ public class Application {
     }
   }
 
+  private void menuCartas() {
+    while (true) {
+      System.out.println("\n===== GERENCIAR CARTAS =====");
+      System.out.println("1 - Incluir carta");
+      System.out.println("2 - Alterar carta");
+      System.out.println("3 - Excluir carta");
+      System.out.println("4 - Listar cartas");
+      System.out.println("0 - Voltar");
+      int opcao = lerInteiro("Escolha: ");
+      if (opcao == 0) return;
+      switch (opcao) {
+        case 1 -> executarSafely(this::incluirCarta);
+        case 2 -> executarSafely(this::alterarCarta);
+        case 3 -> executarSafely(this::excluirCarta);
+        case 4 -> executarSafely(this::listarCartasCrud);
+        default -> System.out.println("Opção inválida.");
+      }
+    }
+  }
+
+  private void incluirCarta() {
+    try {
+      String nome = lerTexto("Nome da carta: ");
+      String conjunto = lerTexto("Conjunto (Ex.: Recursos, Cidade Verde): ");
+      String raridade = lerTextoOuPadrao("Raridade (COMUM, INCOMUM, RARA, EPICA, LENDARIA): ", "COMUM");
+      String descricao = lerTextoOuPadrao("Descrição (opcional): ", "");
+      String erro = "";
+      if (nome.isBlank() || conjunto.isBlank()) {
+        erro = "Nome e conjunto são obrigatórios!";
+      } else {
+        try {
+          new Carta(nome, descricao, conjunto, raridade);
+        } catch (IllegalArgumentException e) {
+          erro = e.getMessage();
+        }
+      }
+      if (!erro.isEmpty()) {
+        System.out.println("Erro: " + erro);
+        return;
+      }
+      Carta carta = new Carta(nome, descricao, conjunto, raridade);
+      service.cartas().inserir(carta);
+      System.out.printf("Carta '%s' cadastrada com sucesso (ID %d)!%n", carta.getNome(), carta.getId());
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void alterarCarta() {
+    try {
+      System.out.println("\nCartas cadastradas:");
+      List<Carta> cartas = service.listarCartas();
+      if (cartas.isEmpty()) {
+        System.out.println("Nenhuma carta cadastrada.");
+        return;
+      }
+      listarCartasCrud();
+      int escolha = lerInteiro("\nNúmero da carta a alterar (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Alteração cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > cartas.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      Carta carta = cartas.get(escolha - 1);
+      String novoNome = lerTextoOuPadrao("Novo nome [" + carta.getNome() + "]: ", carta.getNome());
+      String novoConjunto = lerTextoOuPadrao("Novo conjunto [" + carta.getConjunto() + "]: ", carta.getConjunto());
+      String novaRaridade = lerTextoOuPadrao("Nova raridade [" + carta.getRaridade() + "]: ", carta.getRaridade());
+      String novaDescricao = lerTextoOuPadrao("Nova descrição [" + carta.getDescricao() + "]: ", carta.getDescricao());
+      try {
+        carta.setNome(novoNome);
+        carta.setConjunto(novoConjunto);
+        carta.setRaridade(novaRaridade);
+        carta.setDescricao(novaDescricao);
+      } catch (IllegalArgumentException e) {
+        System.out.println("Erro: " + e.getMessage());
+        return;
+      }
+      service.cartas().atualizar(carta);
+      System.out.println("Carta alterada com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void excluirCarta() {
+    try {
+      System.out.println("\nCartas cadastradas:");
+      List<Carta> cartas = service.listarCartas();
+      if (cartas.isEmpty()) {
+        System.out.println("Nenhuma carta cadastrada.");
+        return;
+      }
+      listarCartasCrud();
+      int escolha = lerInteiro("\nNúmero da carta a excluir (0 cancela): ");
+      if (escolha == 0) {
+        System.out.println("Exclusão cancelada.");
+        return;
+      }
+      if (escolha < 0 || escolha > cartas.size()) {
+        System.out.println("Erro: opção inválida!");
+        return;
+      }
+      service.excluirCarta(cartas.get(escolha - 1).getId());
+      System.out.println("Carta excluída com sucesso!");
+    } catch (SQLException e) {
+      System.out.println("Erro: " + e.getMessage());
+    }
+  }
+
+  private void listarCartasCrud() {
+    List<Carta> cartas = service.listarCartas();
+    if (cartas.isEmpty()) {
+      System.out.println("Nenhuma carta cadastrada.");
+      return;
+    }
+    for (int i = 0; i < cartas.size(); i++) {
+      Carta c = cartas.get(i);
+      System.out.printf(
+        "%d - %s | %s | %s%n",
+        i + 1, c.getNome(), c.getConjunto(), c.getRaridade());
+    }
+  }
+
   /* ─────────────── Utilitários ─────────────── */
+
+  private void executarSafely(Runnable acao) {
+    try {
+      acao.run();
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      System.out.println("Erro: " + e.getMessage());
+    } catch (RuntimeException e) {
+      System.out.println("Erro inesperado: " + e.getMessage());
+    }
+  }
 
   private void anunciarSelosNovos(List<Selo> selos) {
     if (!selos.isEmpty()) {
@@ -636,11 +845,30 @@ public class Application {
   }
 
   private String lerTexto(String rotulo) {
+    return lerTexto(rotulo, 100);
+  }
+
+  private String lerTexto(String rotulo, int maxLength) {
     while (true) {
       System.out.print(rotulo);
       String valor = scanner.nextLine().trim();
-      if (!valor.isEmpty()) return valor;
-      System.out.println("Valor obrigatório.");
+      if (valor.isEmpty()) {
+        System.out.println("Valor obrigatório.");
+        continue;
+      }
+      if (valor.length() > maxLength) {
+        System.out.println("Valor muito longo: máximo de " + maxLength + " caracteres.");
+        continue;
+      }
+      return valor;
+    }
+  }
+
+  private long lerId(String rotulo) {
+    while (true) {
+      long id = lerInteiro(rotulo);
+      if (id > 0) return id;
+      System.out.println("O ID deve ser um número positivo.");
     }
   }
 

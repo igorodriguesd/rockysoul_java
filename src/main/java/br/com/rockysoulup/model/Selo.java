@@ -1,7 +1,12 @@
 package br.com.rockysoulup.model;
 
+import java.util.Objects;
+
 /** Selo conquistado automaticamente ao atingir determinada pontuação. */
 public class Selo {
+
+  private static final int MAX_NOME = 100;
+  private static final int MAX_DESCRICAO = 200;
 
   private Long id;
   private String nome;
@@ -35,7 +40,11 @@ public class Selo {
     if (nome == null || nome.isBlank()) throw new IllegalArgumentException(
       "Nome do selo é obrigatório"
     );
-    this.nome = nome.trim();
+    String limpo = nome.trim();
+    if (limpo.length() > MAX_NOME) throw new IllegalArgumentException(
+      "O nome do selo deve ter no máximo " + MAX_NOME + " caracteres"
+    );
+    this.nome = limpo;
   }
 
   public String getDescricao() {
@@ -43,7 +52,11 @@ public class Selo {
   }
 
   public void setDescricao(String descricao) {
-    this.descricao = descricao == null ? "" : descricao.trim();
+    String limpo = descricao == null ? "" : descricao.trim();
+    if (limpo.length() > MAX_DESCRICAO) throw new IllegalArgumentException(
+      "A descrição do selo deve ter no máximo " + MAX_DESCRICAO + " caracteres"
+    );
+    this.descricao = limpo;
   }
 
   public int getPontosMin() {
@@ -55,5 +68,23 @@ public class Selo {
       "A pontuação mínima não pode ser negativa"
     );
     this.pontosMin = pontosMin;
+  }
+
+  @Override
+  public String toString() {
+    return "Selo{id=" + id + ", nome='" + nome + "', pontosMin=" + pontosMin + "}";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    Selo other = (Selo) obj;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

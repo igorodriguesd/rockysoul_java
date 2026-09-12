@@ -1,6 +1,6 @@
 ﻿# RockySoul — Sistema de Gamificação Sustentável
 
-Aplicação Java 17 + Maven que combina gestão de usuários, ações sustentáveis,
+Aplicação Java 21 + Maven que combina gestão de usuários, ações sustentáveis,
 recompensas e um sistema de cartas colecionáveis inspirados no modelo de jogo do
 frontend React. O usuário acumula pontos, evolui por selo, coleta cartas com
 raridades distintas, resgata benefícios reais e acompanha o ranking da comunidade.
@@ -69,7 +69,7 @@ Exemplos:
 
 ## Como executar
 
-Requisitos: JDK 17+ e Maven.
+Requisitos: JDK 21+ e Maven.
 
 ```bash
 # 1) compilar e rodar os testes

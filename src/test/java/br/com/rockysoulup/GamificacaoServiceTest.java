@@ -56,24 +56,18 @@ class GamificacaoServiceTest {
 
   @Test
   void deveCalcularFragmentosConformeRaridade() {
-    Carta comum = new Carta("Reciclagem", "Descrição", "Recursos", "COMUM");
-    Carta rara = new Carta("Energia Limpa", "Descrição", "Energia Limpa", "RARA");
-    Carta lendaria = new Carta("Estrela do Futuro", "Descrição", "Cultivo", "LENDARIA");
-
-    assertEquals(3, comum.getFragmentosPorRaridade());
-    assertEquals(10, rara.getFragmentosPorRaridade());
-    assertEquals(40, lendaria.getFragmentosPorRaridade());
+    RockySoulService regras = new RockySoulService();
+    assertEquals(3, regras.fragmentosPorDuplicada("COMUM"));
+    assertEquals(10, regras.fragmentosPorDuplicada("RARA"));
+    assertEquals(40, regras.fragmentosPorDuplicada("LENDARIA"));
   }
 
   @Test
   void deveUsarChanceDeDropPorRaridade() {
-    Carta comum = new Carta("Reciclagem", "Descrição", "Recursos", "COMUM");
-    Carta incomum = new Carta("Água Viva", "Descrição", "Guardiões da Água", "INCOMUM");
-    Carta lendaria = new Carta("Muda do Amanhã", "Descrição", "Cultivo", "LENDARIA");
-
-    assertEquals(75, comum.getChanceDeDrop());
-    assertEquals(55, incomum.getChanceDeDrop());
-    assertEquals(10, lendaria.getChanceDeDrop());
+    RockySoulService regras = new RockySoulService();
+    assertEquals(75, regras.chanceDrop("COMUM"));
+    assertEquals(55, regras.chanceDrop("INCOMUM"));
+    assertEquals(10, regras.chanceDrop("LENDARIA"));
     assertEquals("COMUM", Carta.sortearRaridadeAleatoria(10));
     assertEquals("LENDARIA", Carta.sortearRaridadeAleatoria(100));
   }

@@ -1,6 +1,8 @@
 package br.com.rockysoulup;
 
 import br.com.rockysoulup.model.*;
+import br.com.rockysoulup.exception.RegistroDuplicadoException;
+import br.com.rockysoulup.exception.SaldoInsuficienteException;
 import br.com.rockysoulup.repository.*;
 import br.com.rockysoulup.service.GamificacaoService;
 import br.com.rockysoulup.service.RockySoulService;
@@ -51,9 +53,8 @@ public class TesteSistema {
     Usuario u = new Usuario("Ana", "ana@email.com");
     Selo s = new Selo("Broto", "50 pontos", 50);
     Historico h = new Historico(1L, "Reciclagem", 30);
-    UsuarioSelo us = new UsuarioSelo(1L, 1L);
     System.out.println("Objetos criados: " + u + " | " + s.getNome()
-      + " | " + h.getDescricao() + " | seloId=" + us.getSeloId());
+      + " | " + h.getDescricao());
 
     for (Runnable invalido : List.<Runnable>of(
       () -> new Usuario("", "x@x.com"),
@@ -103,7 +104,6 @@ public class TesteSistema {
     UsuarioRepository usuarioRepository = new UsuarioRepository();
     HistoricoRepository historicoRepository = new HistoricoRepository();
     SeloRepository seloRepository = new SeloRepository();
-    UsuarioSeloRepository usuarioSeloRepository = new UsuarioSeloRepository();
     RockySoulService service = new RockySoulService();
 
     System.out.println("\n--- 3. CRUD Usuario (Create/Read/Update/Delete) ---");
@@ -136,14 +136,14 @@ public class TesteSistema {
     try {
       service.cadastrarUsuario("Outra Ana " + suf, email);
       throw new IllegalStateException("Falha: e-mail duplicado deveria ser rejeitado");
-    } catch (IllegalStateException esperado) {
-      System.out.println("e-mail duplicado rejeitado -> ok");
+    } catch (RegistroDuplicadoException esperado) {
+      System.out.println("e-mail duplicado rejeitado -> " + esperado.getMessage());
     }
 
     Selo seloInicio = new Selo("Selo início " + suf, "mínimo 0", 0);
     seloRepository.inserir(seloInicio);
 
-    List<Selo> concedidos = service.registrarAcao(ana, "Reciclagem", 30);
+    List<Selo> concedidos = service.registrarAcao(ana, "Reciclagem", 30).selosConquistados();
     System.out.println("registrarAcao -> pontos " + ana.getPontos()
       + ", selos concedidos: " + nomes(concedidos));
 
@@ -152,7 +152,7 @@ public class TesteSistema {
     historicoRepository.atualizar(historico);
     System.out.println("historico update -> " + historicoRepository.listarPorUsuario(ana.getId()).get(0).getDescricao());
 
-    LIMPEZA.add(() -> limparFluxo(usuarioRepository, historicoRepository, usuarioSeloRepository,
+    LIMPEZA.add(() -> limparFluxo(usuarioRepository, historicoRepository,
       seloRepository, ana, seloInicio.getId()));
 
     System.out.println("\n--- 6. Ranking e selos ---");
@@ -170,7 +170,7 @@ public class TesteSistema {
     boolean recusou = false;
     try {
       service.resgatarRecompensa(ana, rec.getId());
-    } catch (IllegalStateException esperado) {
+    } catch (SaldoInsuficienteException esperado) {
       recusou = true;
       System.out.println("pontos insuficientes rejeitado -> " + esperado.getMessage());
     }
@@ -220,7 +220,6 @@ public class TesteSistema {
   private static void limparFluxo(
     UsuarioRepository usuarioRepository,
     HistoricoRepository historicoRepository,
-    UsuarioSeloRepository usuarioSeloRepository,
     SeloRepository seloRepository,
     Usuario ana,
     long idSeloInicio
@@ -228,11 +227,6 @@ public class TesteSistema {
     tenta(() -> {
       for (Historico h : historicoRepository.listarPorUsuario(ana.getId())) {
         historicoRepository.excluir(h.getId());
-      }
-    });
-    tenta(() -> {
-      for (UsuarioSelo rel : usuarioSeloRepository.listarPorUsuario(ana.getId())) {
-        usuarioSeloRepository.excluir(ana.getId(), rel.getSeloId());
       }
     });
     tenta(() -> usuarioRepository.excluir(ana.getId()));

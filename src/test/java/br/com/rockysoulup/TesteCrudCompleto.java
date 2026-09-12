@@ -1,9 +1,9 @@
 package br.com.rockysoulup;
 
 import br.com.rockysoulup.model.*;
+import br.com.rockysoulup.exception.RegistroDuplicadoException;
 import br.com.rockysoulup.repository.*;
 import br.com.rockysoulup.service.RockySoulService;
-import java.sql.SQLException;
 import java.util.*;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -77,7 +77,7 @@ public final class TesteCrudCompleto {
       boolean rejeitou = false;
       try {
         service.cadastrarUsuario("User 11 dup " + suf, "user1." + suf + "@email.com");
-      } catch (IllegalStateException esperado) {
+      } catch (RegistroDuplicadoException esperado) {
         rejeitou = true;
       }
       if (!rejeitou) {
@@ -162,18 +162,12 @@ public final class TesteCrudCompleto {
       }
       System.out.println("User 10 e seus dependentes removidos -> ok; selos/banco intactos.");
 
-      System.out.println("\n--- 8. Delete selo com vínculos (cascata em serviço) ---");
-      try {
-        seloRepository.excluir(bronze.getId());
-        throw new IllegalStateException("Falha: pisada na FK deveria ter estourado ORA-02292");
-      } catch (SQLException e) {
-        System.out.println("Exclusão direta de selo com vínculos -> bloqueada pela FK (" + primeiroErro(e) + ")");
-      }
+      System.out.println("\n--- 8. Delete selo (sem vínculos persistidos) ---");
       service.excluirSelo(bronze.getId());
       if (seloRepository.buscarPorId(bronze.getId()) != null) {
-        throw new IllegalStateException("Falha: cascata do selo incompleta");
+        throw new IllegalStateException("Falha: exclusão do selo incompleta");
       }
-      System.out.println("service.excluirSelo -> removido com vínculos -> ok");
+      System.out.println("service.excluirSelo -> removido -> ok");
 
       System.out.println("\n===== TODOS OS CENÁRIOS DO CRUD COMPLETO PASSARAM =====\n");
     } finally {
@@ -197,10 +191,6 @@ public final class TesteCrudCompleto {
           + "3 selos criados e removidos."
       );
     }
-  }
-
-  private static String primeiroErro(SQLException e) {
-    return (e.getErrorCode() == 2292) ? "ORA-02292 (restrição de integridade)" : String.valueOf(e.getErrorCode());
   }
 
   /** Conta apenas os selos criados por esta suite (nome termina com o sufixo). */

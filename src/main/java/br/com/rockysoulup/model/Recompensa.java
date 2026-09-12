@@ -1,7 +1,14 @@
 package br.com.rockysoulup.model;
 
+import java.util.Objects;
+
 /** Recompensa resgatável por pontos, com estoque limitado. */
 public class Recompensa {
+
+  private static final int MAX_TITULO = 100;
+  private static final int MAX_DESCRICAO = 200;
+  private static final int MAX_CATEGORIA = 30;
+  private static final int MAX_DESTAQUE = 20;
 
   private Long id;
   private String titulo;
@@ -52,7 +59,11 @@ public class Recompensa {
     if (titulo == null || titulo.isBlank()) throw new IllegalArgumentException(
       "O título da recompensa é obrigatório"
     );
-    this.titulo = titulo.trim();
+    String limpo = titulo.trim();
+    if (limpo.length() > MAX_TITULO) throw new IllegalArgumentException(
+      "O título deve ter no máximo " + MAX_TITULO + " caracteres"
+    );
+    this.titulo = limpo;
   }
 
   public String getDescricao() {
@@ -60,7 +71,11 @@ public class Recompensa {
   }
 
   public void setDescricao(String descricao) {
-    this.descricao = descricao == null ? "" : descricao.trim();
+    String limpo = descricao == null ? "" : descricao.trim();
+    if (limpo.length() > MAX_DESCRICAO) throw new IllegalArgumentException(
+      "A descrição deve ter no máximo " + MAX_DESCRICAO + " caracteres"
+    );
+    this.descricao = limpo;
   }
 
   public int getCusto() {
@@ -90,7 +105,11 @@ public class Recompensa {
   }
 
   public void setCategoria(String categoria) {
-    this.categoria = categoria == null ? "" : categoria.trim();
+    String limpo = categoria == null ? "" : categoria.trim();
+    if (limpo.length() > MAX_CATEGORIA) throw new IllegalArgumentException(
+      "A categoria deve ter no máximo " + MAX_CATEGORIA + " caracteres"
+    );
+    this.categoria = limpo;
   }
 
   public String getDestaque() {
@@ -98,6 +117,28 @@ public class Recompensa {
   }
 
   public void setDestaque(String destaque) {
-    this.destaque = destaque == null ? "" : destaque.trim();
+    String limpo = destaque == null ? "" : destaque.trim();
+    if (limpo.length() > MAX_DESTAQUE) throw new IllegalArgumentException(
+      "O destaque deve ter no máximo " + MAX_DESTAQUE + " caracteres"
+    );
+    this.destaque = limpo;
+  }
+
+  @Override
+  public String toString() {
+    return "Recompensa{id=" + id + ", titulo='" + titulo + "', custo=" + custo + ", estoque=" + estoque + "}";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    Recompensa other = (Recompensa) obj;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

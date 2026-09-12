@@ -1,5 +1,7 @@
 package br.com.rockysoulup.model;
 
+import java.util.Objects;
+
 public class Usuario {
 
   private static final String[] NOMES_NIVEIS = {
@@ -9,6 +11,9 @@ public class Usuario {
     "EXPERT",
   };
   private static final int[] PONTOS_MINIMOS = {100, 300, 600};
+  private static final int MAX_NOME = 100;
+  private static final int MAX_EMAIL = 150;
+  private static final String REGEX_EMAIL = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
 
   private Long id;
   private String nome;
@@ -83,7 +88,11 @@ public class Usuario {
     if (nome == null || nome.isBlank()) throw new IllegalArgumentException(
       "Nome é obrigatório"
     );
-    this.nome = nome.trim();
+    String limpo = nome.trim();
+    if (limpo.length() > MAX_NOME) throw new IllegalArgumentException(
+      "O nome deve ter no máximo " + MAX_NOME + " caracteres"
+    );
+    this.nome = limpo;
   }
 
   public String getEmail() {
@@ -91,10 +100,17 @@ public class Usuario {
   }
 
   public void setEmail(String email) {
-    if (
-      email == null || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-    ) throw new IllegalArgumentException("E-mail inválido");
-    this.email = email.trim().toLowerCase();
+    if (email == null || email.isBlank()) throw new IllegalArgumentException(
+      "E-mail é obrigatório"
+    );
+    String limpo = email.trim().toLowerCase();
+    if (limpo.length() > MAX_EMAIL) throw new IllegalArgumentException(
+      "O e-mail deve ter no máximo " + MAX_EMAIL + " caracteres"
+    );
+    if (!limpo.matches(REGEX_EMAIL)) throw new IllegalArgumentException(
+      "E-mail inválido. Use um formato como nome@exemplo.com"
+    );
+    this.email = limpo;
   }
 
   public int getPontos() {
@@ -137,5 +153,18 @@ public class Usuario {
       nivel +
       "'}"
     );
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    Usuario other = (Usuario) obj;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }

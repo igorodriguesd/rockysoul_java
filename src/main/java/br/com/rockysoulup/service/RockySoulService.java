@@ -1,12 +1,13 @@
 package br.com.rockysoulup.service;
 
 import br.com.rockysoulup.connection.ConnectionFactory;
+import br.com.rockysoulup.exception.RegistroDuplicadoException;
+import br.com.rockysoulup.exception.SaldoInsuficienteException;
 import br.com.rockysoulup.model.*;
 import br.com.rockysoulup.repository.*;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public final class RockySoulService {
 
@@ -14,16 +15,221 @@ public final class RockySoulService {
   private final UsuarioRepository usuarioRepository = new UsuarioRepository();
   private final HistoricoRepository historicoRepository = new HistoricoRepository();
   private final SeloRepository seloRepository = new SeloRepository();
-  private final UsuarioSeloRepository usuarioSeloRepository = new UsuarioSeloRepository();
   private final AcaoRepository acaoRepository = new AcaoRepository();
   private final RecompensaRepository recompensaRepository = new RecompensaRepository();
   private final CartaRepository cartaRepository = new CartaRepository();
   private final UsuarioCartaRepository usuarioCartaRepository = new UsuarioCartaRepository();
+  private final UsuarioFragmentoRepository usuarioFragmentoRepository = new UsuarioFragmentoRepository();
 
-  public Usuario cadastrarUsuario(String nome, String email) {
+  private static final int CHANCE_DROP_POR_RARIDADE_COMUM = 75;
+  private static final int CHANCE_DROP_POR_RARIDADE_INCOMUM = 55;
+  private static final int CHANCE_DROP_POR_RARIDADE_RARA = 35;
+  private static final int CHANCE_DROP_POR_RARIDADE_EPICA = 20;
+  private static final int CHANCE_DROP_POR_RARIDADE_LENDARIA = 10;
+
+  private static final int FRAGMENTOS_POR_DUPLICADA_COMUM = 3;
+  private static final int FRAGMENTOS_POR_DUPLICADA_INCOMUM = 5;
+  private static final int FRAGMENTOS_POR_DUPLICADA_RARA = 10;
+  private static final int FRAGMENTOS_POR_DUPLICADA_EPICA = 20;
+  private static final int FRAGMENTOS_POR_DUPLICADA_LENDARIA = 40;
+
+  private static final int CUSTO_FABRICACAO_COMUM = 10;
+  private static final int CUSTO_FABRICACAO_INCOMUM = 16;
+  private static final int CUSTO_FABRICACAO_RARA = 32;
+  private static final int CUSTO_FABRICACAO_EPICA = 70;
+  private static final int CUSTO_FABRICACAO_LENDARIA = 140;
+
+  // ───── Métodos auxiliares de raridade ─────
+
+  public static int chanceDrop(String raridade) {
+    return switch (raridade) {
+      case "COMUM" -> CHANCE_DROP_POR_RARIDADE_COMUM;
+      case "INCOMUM" -> CHANCE_DROP_POR_RARIDADE_INCOMUM;
+      case "RARA" -> CHANCE_DROP_POR_RARIDADE_RARA;
+      case "EPICA" -> CHANCE_DROP_POR_RARIDADE_EPICA;
+      case "LENDARIA" -> CHANCE_DROP_POR_RARIDADE_LENDARIA;
+      default -> 0;
+    };
+  }
+
+  public static int fragmentosPorDuplicada(String raridade) {
+    return switch (raridade) {
+      case "COMUM" -> FRAGMENTOS_POR_DUPLICADA_COMUM;
+      case "INCOMUM" -> FRAGMENTOS_POR_DUPLICADA_INCOMUM;
+      case "RARA" -> FRAGMENTOS_POR_DUPLICADA_RARA;
+      case "EPICA" -> FRAGMENTOS_POR_DUPLICADA_EPICA;
+      case "LENDARIA" -> FRAGMENTOS_POR_DUPLICADA_LENDARIA;
+      default -> 0;
+    };
+  }
+
+  public static int custoFabricacao(String raridade) {
+    return switch (raridade) {
+      case "COMUM" -> CUSTO_FABRICACAO_COMUM;
+      case "INCOMUM" -> CUSTO_FABRICACAO_INCOMUM;
+      case "RARA" -> CUSTO_FABRICACAO_RARA;
+      case "EPICA" -> CUSTO_FABRICACAO_EPICA;
+      case "LENDARIA" -> CUSTO_FABRICACAO_LENDARIA;
+      default -> 0;
+    };
+  }
+
+  // ───── Drop de carta pós-ação (igual ao React) ─────
+
+  public Optional<ResultadoSorteio> tentarDropCarta(Usuario usuario, Connection connection) throws SQLException {
+    List<Carta> catalogo = cartaRepository.listar();
+    if (catalogo.isEmpty()) return Optional.empty();
+
+    String raridadeSorteada = Carta.sortearRaridadeAleatoria();
+    int chance = chanceDrop(raridadeSorteada);
+
+    if ((int) (Math.random() * 100) >= chance) return Optional.empty();
+
+    List<Carta> cartasDaRaridade = catalogo.stream()
+        .filter(c -> c.getRaridade().equals(raridadeSorteada))
+        .toList();
+    if (cartasDaRaridade.isEmpty()) return Optional.empty();
+
+    Carta sorteada = cartasDaRaridade.get((int) (Math.random() * cartasDaRaridade.size()));
+    boolean jaTem = usuarioCartaRepository.jaPossui(connection, usuario.getId(), sorteada.getId());
+
+    if (!jaTem) {
+      usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), sorteada.getId(), 1));
+      return Optional.of(new ResultadoSorteio(true, sorteada, true, 0));
+    }
+    int fragmentos = fragmentosPorDuplicada(sorteada.getRaridade());
+    usuarioFragmentoRepository.adicionar(connection, usuario.getId(), sorteada.getRaridade(), fragmentos);
+    return Optional.of(new ResultadoSorteio(true, sorteada, false, fragmentos));
+  }
+
+  public ResultadoSorteio sortearCartaGratis(Usuario usuario) {
+    try (Connection con = ConnectionFactory.abrir()) {
+      con.setAutoCommit(false);
+      try {
+        ResultadoSorteio sorteio = tentarDropCarta(usuario, con)
+            .orElse(ResultadoSorteio.semCarta());
+        con.commit();
+        return sorteio;
+      } catch (SQLException | RuntimeException e) {
+        con.rollback();
+        throw e;
+      }
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao sortear a carta: " + e.getMessage(), e);
+    }
+  }
+
+  public record ResultadoSorteio(boolean caiu, Carta carta, boolean nova, int fragmentosGanhos) {
+
+    public static ResultadoSorteio semCarta() {
+      return new ResultadoSorteio(false, null, false, 0);
+    }
+  }
+
+  // ───── Fabricar carta com fragmentos ─────
+
+  public Carta fabricarCarta(Usuario usuario, long idCarta) throws SaldoInsuficienteException {
+    try {
+      Carta carta = cartaRepository.buscarPorId(idCarta);
+      if (carta == null) throw new IllegalStateException("Carta não encontrada!");
+
+      int custo = custoFabricacao(carta.getRaridade());
+      int temFragmentos;
+      try (Connection con = ConnectionFactory.abrir()) {
+        if (usuarioCartaRepository.jaPossui(con, usuario.getId(), carta.getId())) {
+          throw new IllegalStateException("Você já possui esta carta!");
+        }
+        temFragmentos = usuarioFragmentoRepository.buscar(con, usuario.getId(), carta.getRaridade());
+      }
+      if (temFragmentos < custo) {
+        throw new SaldoInsuficienteException(
+            "Fragmentos insuficientes! Precisa de " + custo + " " + carta.getRaridade() + ".");
+      }
+      emTransacao(connection -> {
+        usuarioFragmentoRepository.gastar(connection, usuario.getId(), carta.getRaridade(), custo);
+        usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1));
+      });
+      return carta;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao fabricar carta: " + e.getMessage(), e);
+    }
+  }
+
+  // ───── Consultas de coleção ─────
+
+  public List<Carta> listarCartas() {
+    try {
+      return cartaRepository.listar();
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao listar cartas: " + e.getMessage(), e);
+    }
+  }
+
+  public List<Carta> listarCartasDoUsuario(Usuario usuario) {
+    try {
+      List<Carta> cartas = new ArrayList<>();
+      for (UsuarioCarta uc : usuarioCartaRepository.listarPorUsuario(usuario.getId())) {
+        Carta carta = cartaRepository.buscarPorId(uc.getCartaId());
+        if (carta != null) cartas.add(carta);
+      }
+      return cartas;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao listar cartas do usuário: " + e.getMessage(), e);
+    }
+  }
+
+  public int quantidadeCartaDoUsuario(Usuario usuario, long cartaId) {
+    try {
+      List<UsuarioCarta> lista = usuarioCartaRepository.listarPorUsuario(usuario.getId());
+      for (UsuarioCarta uc : lista) {
+        if (uc.getCartaId() == cartaId) return uc.getQuantidade();
+      }
+      return 0;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao consultar a coleção: " + e.getMessage(), e);
+    }
+  }
+
+  public Map<String, Integer> fragmentosDoUsuario(Usuario usuario) {
+    try (Connection con = ConnectionFactory.abrir()) {
+      return usuarioFragmentoRepository.listarPorUsuario(con, usuario.getId());
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao consultar fragmentos: " + e.getMessage(), e);
+    }
+  }
+
+  // ───── Fluxo de ação + drop ─────
+
+  public ResultadoAcao registrarAcao(Usuario usuario, String descricao, int pontos) {
+    try {
+      int pontosAntes = usuario.getPontos();
+      gamificacao.registrarAcao(usuario, pontos);
+      List<Selo> novosSelos = selosNovos(usuario, pontosAntes);
+      Optional<ResultadoSorteio> drop = Optional.empty();
+      emTransacao(connection -> {
+        historicoRepository.inserir(connection, new Historico(usuario.getId(), descricao, pontos));
+        usuarioRepository.atualizar(connection, usuario);
+      });
+      try (Connection con = ConnectionFactory.abrir()) {
+        con.setAutoCommit(false);
+        try {
+          drop = tentarDropCarta(usuario, con);
+          con.commit();
+        } catch (SQLException | RuntimeException ex) {
+          con.rollback();
+          throw ex;
+        }
+      }
+      return new ResultadoAcao(novosSelos, drop);
+    } catch (SQLException e) {
+      throw new IllegalStateException("Falha ao registrar a ação: " + e.getMessage(), e);
+    }
+  }
+
+  public Usuario cadastrarUsuario(String nome, String email) throws RegistroDuplicadoException {
     try {
       if (usuarioRepository.buscarPorEmail(email) != null) {
-        throw new IllegalStateException("E-mail já cadastrado. Use outro e-mail.");
+        throw new RegistroDuplicadoException("E-mail já cadastrado. Use outro e-mail.");
       }
 
       Usuario novo = new Usuario(nome, email);
@@ -116,45 +322,24 @@ public final class RockySoulService {
         new Carta("Agrofloresta", "Sistema integrado de cultivo com a floresta.", "Cultivo", "LENDARIA"));
   }
 
-  public List<Selo> registrarAcao(Usuario usuario, String descricao, int pontos) {
-    try {
-      gamificacao.registrarAcao(usuario, pontos);
-      List<Selo> concedidos = new ArrayList<>();
-      emTransacao(connection -> {
-        historicoRepository.inserir(
-            connection,
-            new Historico(usuario.getId(), descricao, pontos));
-        usuarioRepository.atualizar(connection, usuario);
-        concedidos.addAll(concederSelos(connection, usuario));
-      });
-      return concedidos;
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao registrar a ação: " + e.getMessage(), e);
-    }
-  }
+  // ───── Catálogo padrão (já existente) ─────
 
-  private List<Selo> concederSelos(Connection connection, Usuario usuario)
-      throws SQLException {
-    List<Selo> concedidos = new ArrayList<>();
+  /** Selos cuja pontuação mínima foi atingida por esta ação (comparando antes/depois). */
+  private List<Selo> selosNovos(Usuario usuario, int pontosAntes) throws SQLException {
+    List<Selo> novos = new ArrayList<>();
     for (Selo selo : seloRepository.listar()) {
-      boolean jaTem = usuarioSeloRepository.jaConquistado(connection, usuario.getId(), selo.getId());
-      if (!jaTem && gamificacao.seloConquistado(usuario, selo)) {
-        usuarioSeloRepository.inserir(connection, new UsuarioSelo(usuario.getId(), selo.getId()));
-        concedidos.add(selo);
-      }
+      boolean antes = pontosAntes >= selo.getPontosMin();
+      boolean agora = usuario.getPontos() >= selo.getPontosMin();
+      if (!antes && agora) novos.add(selo);
     }
-    return concedidos;
+    return novos;
   }
 
   public List<Selo> listarSelosConcedidos(Usuario usuario) {
     try {
-      List<Selo> concedidos = new ArrayList<>();
-      for (Selo selo : seloRepository.listar()) {
-        if (usuarioSeloRepository.jaConquistado(usuario.getId(), selo.getId())) {
-          concedidos.add(selo);
-        }
-      }
-      return concedidos;
+      return seloRepository.listar().stream()
+          .filter(selo -> usuario.getPontos() >= selo.getPontosMin())
+          .toList();
     } catch (SQLException e) {
       throw new IllegalStateException("Falha ao consultar selos: " + e.getMessage(), e);
     }
@@ -184,67 +369,7 @@ public final class RockySoulService {
     }
   }
 
-  public List<Carta> listarCartas() {
-    try {
-      return cartaRepository.listar();
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao listar cartas: " + e.getMessage(), e);
-    }
-  }
-
-  public List<Carta> listarCartasDoUsuario(Usuario usuario) {
-    try {
-      List<Carta> cartas = new ArrayList<>();
-      for (UsuarioCarta usuarioCarta : usuarioCartaRepository.listarPorUsuario(usuario.getId())) {
-        Carta carta = cartaRepository.buscarPorId(usuarioCarta.getCartaId());
-        if (carta != null) {
-          cartas.add(carta);
-        }
-      }
-      return cartas;
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao listar cartas do usuário: " + e.getMessage(), e);
-    }
-  }
-
-  public Carta adicionarCartaAoUsuario(Usuario usuario, long idCarta) {
-    try {
-      Carta carta = cartaRepository.buscarPorId(idCarta);
-      if (carta == null) {
-        throw new IllegalStateException("Erro: carta não encontrada!");
-      }
-      emTransacao(connection -> {
-        if (usuarioCartaRepository.jaPossui(connection, usuario.getId(), carta.getId())) {
-          usuarioCartaRepository.atualizarQuantidade(connection, usuario.getId(), carta.getId(), 1);
-        } else {
-          usuarioCartaRepository.inserir(connection, new UsuarioCarta(usuario.getId(), carta.getId(), 1));
-        }
-      });
-      return carta;
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao adicionar carta: " + e.getMessage(), e);
-    }
-  }
-
-  public Carta sortearCartaPorRaridade(List<Carta> catalogo) {
-    if (catalogo == null || catalogo.isEmpty()) {
-      throw new IllegalStateException("Erro: catálogo de cartas vazio!");
-    }
-
-    String raridadeSorteada = Carta.sortearRaridadeAleatoria();
-    List<Carta> cartasDaRaridade = catalogo.stream()
-        .filter(c -> c.getRaridade().equals(raridadeSorteada))
-        .toList();
-
-    if (cartasDaRaridade.isEmpty()) {
-      return catalogo.get(0);
-    }
-
-    int indice = (int) (Math.random() * cartasDaRaridade.size());
-    return cartasDaRaridade.get(indice);
-  }
-
-  public Recompensa resgatarRecompensa(Usuario usuario, long idRecompensa) {
+  public Recompensa resgatarRecompensa(Usuario usuario, long idRecompensa) throws SaldoInsuficienteException {
     try {
       Recompensa recompensa = recompensaRepository.buscarPorId(idRecompensa);
       if (recompensa == null) {
@@ -254,8 +379,8 @@ public final class RockySoulService {
         throw new IllegalStateException("Erro: recompensa esgotada!");
       }
       if (usuario.getPontos() < recompensa.getCusto()) {
-        throw new IllegalStateException(
-            "Erro: pontos insuficientes! Você precisa de " +
+        throw new SaldoInsuficienteException(
+            "Pontos insuficientes! Você precisa de " +
                 recompensa.getCusto() +
                 ", mas tem apenas " +
                 usuario.getPontos() +
@@ -263,7 +388,7 @@ public final class RockySoulService {
       }
       emTransacao(connection -> {
         recompensa.setEstoque(recompensa.getEstoque() - 1);
-        recompensaRepository.atualizar(recompensa);
+        recompensaRepository.atualizar(connection, recompensa);
         usuario.setPontos(usuario.getPontos() - recompensa.getCusto());
         usuario.setResgatados(usuario.getResgatados() + recompensa.getCusto());
         usuarioRepository.atualizar(connection, usuario);
@@ -290,19 +415,28 @@ public final class RockySoulService {
     return recompensaRepository;
   }
 
+  public CartaRepository cartas() {
+    return cartaRepository;
+  }
+
+  public void excluirCarta(long id) throws SQLException {
+    emTransacao(connection -> {
+      usuarioCartaRepository.excluirPorCarta(connection, id);
+      cartaRepository.excluir(connection, id);
+    });
+  }
+
   public void excluirUsuario(long id) throws SQLException {
     emTransacao(connection -> {
       historicoRepository.excluirPorUsuario(connection, id);
-      usuarioSeloRepository.excluirPorUsuario(connection, id);
+      usuarioCartaRepository.excluirPorUsuario(connection, id);
+      usuarioFragmentoRepository.excluirPorUsuario(connection, id);
       usuarioRepository.excluir(connection, id);
     });
   }
 
   public void excluirSelo(long id) throws SQLException {
-    emTransacao(connection -> {
-      usuarioSeloRepository.excluirPorSelo(connection, id);
-      seloRepository.excluir(connection, id);
-    });
+    emTransacao(connection -> seloRepository.excluir(connection, id));
   }
 
   public void excluirAcao(long id) throws SQLException {
@@ -330,4 +464,6 @@ public final class RockySoulService {
       }
     }
   }
+
+  public record ResultadoAcao(List<Selo> selosConquistados, Optional<ResultadoSorteio> cartaDrop) {}
 }
