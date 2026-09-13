@@ -15,7 +15,7 @@ if not exist "src\main\resources\db.properties" (
 echo [1/3] Compilando...
 call mvn -q package
 if errorlevel 1 (
-  echo Falha no build. Verifique se o JDK 17+ e o Maven estao instalados.
+  echo Falha no build. Verifique se o JDK 21+ e o Maven estao instalados.
   pause
   exit /b 1
 )

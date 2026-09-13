@@ -42,11 +42,11 @@ no `RockySoulService`.
 
 | Raridade | Chance de aparecimento | Fragmentos por carta | Custo p/ fabricar |
 |---|---:|---:|---:|
-| COMUM | 75% | 3 | 5 |
-| INCOMUM | 15% | 5 | 10 |
-| RARA | 6% | 10 | 20 |
-| EPICA | 3% | 20 | 30 |
-| LENDARIA | 1% | 40 | 40 |
+| COMUM | 75% | 3 | 10 |
+| INCOMUM | 15% | 5 | 16 |
+| RARA | 6% | 10 | 32 |
+| EPICA | 3% | 20 | 70 |
+| LENDARIA | 1% | 40 | 140 |
 
 ### Catálogo padrão de cartas
 
@@ -54,9 +54,9 @@ O catálogo é semeado automaticamente na primeira execução, quando o banco es
 vazio (`garantirCatalogo()`). Inclui 20 cartas em 5 conjuntos temáticos:
 
 - **Recursos**: Reciclagem, Reutilização, Sacola Reutilizável, Redução de Desperdício
-- **Água**: Economia de Água, Banho Rápido, Garrafa Reutilizável, Captação de Chuva
-- **Mobilidade**: Bicicleta, Transporte Público, Mobilidade Elétrica, Ciclovia
-- **Energia**: Economia de Energia, Iluminação Eficiente, Energia Solar, Energia Eólica
+- **Guardiões da Água**: Economia de Água, Banho Rápido, Garrafa Reutilizável, Captação de Chuva
+- **Cidade Verde**: Bicicleta, Transporte Público, Mobilidade Elétrica, Ciclovia
+- **Energia Limpa**: Economia de Energia, Iluminação Eficiente, Energia Solar, Energia Eólica
 - **Cultivo**: Plantio, Compostagem, Horta Doméstica, Agrofloresta
 
 ## Requisitos

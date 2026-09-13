@@ -43,19 +43,6 @@ public final class HistoricoRepository {
     }
   }
 
-  public Historico buscarPorId(long id) throws SQLException {
-    String sql = "SELECT ID_HISTORICO, ID_USUARIO, DS_ACAO, NR_PONTOS, DT_ACAO FROM HISTORICO WHERE ID_HISTORICO = ?";
-    try (
-      Connection con = ConnectionFactory.abrir();
-      PreparedStatement pstmt = con.prepareStatement(sql)
-    ) {
-      pstmt.setLong(1, id);
-      try (ResultSet rs = pstmt.executeQuery()) {
-        return rs.next() ? mapear(rs) : null;
-      }
-    }
-  }
-
   // apaga todo o histórico de um usuário
   public void excluirPorUsuario(Connection con, long usuarioId) throws SQLException {
     String sql = "DELETE FROM HISTORICO WHERE ID_USUARIO = ?";
