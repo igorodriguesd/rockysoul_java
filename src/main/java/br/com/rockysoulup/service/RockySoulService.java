@@ -102,29 +102,7 @@ public final class RockySoulService {
     return Optional.of(new ResultadoSorteio(true, sorteada, false, fragmentos));
   }
 
-  public ResultadoSorteio sortearCartaGratis(Usuario usuario) {
-    try (Connection con = ConnectionFactory.abrir()) {
-      con.setAutoCommit(false);
-      try {
-        ResultadoSorteio sorteio = tentarDropCarta(usuario, con)
-            .orElse(ResultadoSorteio.semCarta());
-        con.commit();
-        return sorteio;
-      } catch (SQLException | RuntimeException e) {
-        con.rollback();
-        throw e;
-      }
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao sortear a carta: " + e.getMessage(), e);
-    }
-  }
-
-  public record ResultadoSorteio(boolean caiu, Carta carta, boolean nova, int fragmentosGanhos) {
-
-    public static ResultadoSorteio semCarta() {
-      return new ResultadoSorteio(false, null, false, 0);
-    }
-  }
+  public record ResultadoSorteio(boolean caiu, Carta carta, boolean nova, int fragmentosGanhos) {}
 
   // ───── Fabricar carta com fragmentos ─────
 
@@ -175,18 +153,6 @@ public final class RockySoulService {
       return cartas;
     } catch (SQLException e) {
       throw new IllegalStateException("Falha ao listar cartas do usuário: " + e.getMessage(), e);
-    }
-  }
-
-  public int quantidadeCartaDoUsuario(Usuario usuario, long cartaId) {
-    try {
-      List<UsuarioCarta> lista = usuarioCartaRepository.listarPorUsuario(usuario.getId());
-      for (UsuarioCarta uc : lista) {
-        if (uc.getCartaId() == cartaId) return uc.getQuantidade();
-      }
-      return 0;
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao consultar a coleção: " + e.getMessage(), e);
     }
   }
 
@@ -342,14 +308,6 @@ public final class RockySoulService {
           .toList();
     } catch (SQLException e) {
       throw new IllegalStateException("Falha ao consultar selos: " + e.getMessage(), e);
-    }
-  }
-
-  public List<Selo> listarSelos() {
-    try {
-      return seloRepository.listar();
-    } catch (SQLException e) {
-      throw new IllegalStateException("Falha ao listar selos: " + e.getMessage(), e);
     }
   }
 

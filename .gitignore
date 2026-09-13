@@ -4,3 +4,7 @@
 *.iml
 dependency-reduced-pom.xml
 src/main/resources/db.properties
+**/*.localz
+**/*.local
+**/*.git
+**/*.DS_Store

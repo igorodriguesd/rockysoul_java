@@ -11,8 +11,4 @@ public class RegistroDuplicadoException extends Exception {
   public RegistroDuplicadoException(String mensagem) {
     super(mensagem);
   }
-
-  public RegistroDuplicadoException(String mensagem, Throwable causa) {
-    super(mensagem, causa);
-  }
 }

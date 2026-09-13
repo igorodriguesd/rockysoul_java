@@ -40,19 +40,6 @@ public final class AcaoRepository {
     return lista;
   }
 
-  public Acao buscarPorId(long id) throws SQLException {
-    String sql = "SELECT ID_ACAO, NM_ACAO, NR_PONTOS FROM ACAO WHERE ID_ACAO = ?";
-    try (
-      Connection con = ConnectionFactory.abrir();
-      PreparedStatement pstmt = con.prepareStatement(sql)
-    ) {
-      pstmt.setLong(1, id);
-      try (ResultSet rs = pstmt.executeQuery()) {
-        return rs.next() ? mapear(rs) : null;
-      }
-    }
-  }
-
   // evita cadastrar ação repetida (consulta por nome)
   public Acao buscarPorNome(String nome) throws SQLException {
     String sql = "SELECT ID_ACAO, NM_ACAO, NR_PONTOS FROM ACAO WHERE LOWER(NM_ACAO) = ?";

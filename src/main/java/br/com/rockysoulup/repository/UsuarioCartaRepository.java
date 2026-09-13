@@ -65,26 +65,6 @@ public final class UsuarioCartaRepository {
     return lista;
   }
 
-  public void atualizarQuantidade(Connection con, long usuarioId, long cartaId, int quantidade) throws SQLException {
-    String sql = "UPDATE USUARIO_CARTA SET QT_CARTA = ? WHERE ID_USUARIO = ? AND ID_CARTA = ?";
-    try (PreparedStatement pstmt = con.prepareStatement(sql)) {
-      pstmt.setInt(1, quantidade);
-      pstmt.setLong(2, usuarioId);
-      pstmt.setLong(3, cartaId);
-      pstmt.executeUpdate();
-    }
-  }
-
-  // soma uma unidade à quantidade de uma carta repetida
-  public void incrementarQuantidade(Connection con, long usuarioId, long cartaId) throws SQLException {
-    String sql = "UPDATE USUARIO_CARTA SET QT_CARTA = QT_CARTA + 1 WHERE ID_USUARIO = ? AND ID_CARTA = ?";
-    try (PreparedStatement pstmt = con.prepareStatement(sql)) {
-      pstmt.setLong(1, usuarioId);
-      pstmt.setLong(2, cartaId);
-      pstmt.executeUpdate();
-    }
-  }
-
   // apaga as cartas de um usuário (usada na exclusão em cascata)
   public void excluirPorUsuario(Connection con, long usuarioId) throws SQLException {
     String sql = "DELETE FROM USUARIO_CARTA WHERE ID_USUARIO = ?";

@@ -152,8 +152,10 @@ public class TesteSistema {
     historicoRepository.atualizar(historico);
     System.out.println("historico update -> " + historicoRepository.listarPorUsuario(ana.getId()).get(0).getDescricao());
 
-    LIMPEZA.add(() -> limparFluxo(usuarioRepository, historicoRepository,
-      seloRepository, ana, seloInicio.getId()));
+    LIMPEZA.add(() -> {
+      tenta(() -> service.excluirUsuario(ana.getId()));
+      tenta(() -> seloRepository.excluir(seloInicio.getId()));
+    });
 
     System.out.println("\n--- 6. Ranking e selos ---");
     System.out.println("selos do usuário -> " + nomes(service.listarSelosConcedidos(ana)));
@@ -214,24 +216,6 @@ public class TesteSistema {
       }
     }
     LIMPEZA.clear();
-  }
-
-  /** Remove, na ordem correta (filhos antes do pai), os dados do fluxo. */
-  private static void limparFluxo(
-    UsuarioRepository usuarioRepository,
-    HistoricoRepository historicoRepository,
-    SeloRepository seloRepository,
-    Usuario ana,
-    long idSeloInicio
-  ) {
-    tenta(() -> {
-      for (Historico h : historicoRepository.listarPorUsuario(ana.getId())) {
-        historicoRepository.excluir(h.getId());
-      }
-    });
-    tenta(() -> usuarioRepository.excluir(ana.getId()));
-    tenta(() -> seloRepository.excluir(idSeloInicio));
-    System.out.println("fluxo de teste removido do banco");
   }
 
   private static void tenta(OperacaoBanco operacao) {
